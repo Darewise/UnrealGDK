@@ -21,7 +21,7 @@ public:
 
 private:
 	void GenerateSchema(FSpatialGDKEditor& SpatialGDKEditor);
-	void GenerateSnapshots(FSpatialGDKEditor& SpatialGDKEditor);
-	TArray<FString> GetAllMapPaths(FString InMapsPath);
-	void GenerateSnapshotForMap(FSpatialGDKEditor& SpatialGDKEditor, FString WorldPath);
+	void GenerateSnapshots(FSpatialGDKEditor& SpatialGDKEditor, const FString* InMapName = nullptr);
+	TArray<FString> GetAllMapPaths(const FString& InMapsPath);
+	void GenerateSnapshotForMap(FSpatialGDKEditor& SpatialGDKEditor, const FString& WorldPath);
 };
