@@ -459,11 +459,13 @@ bool FillSnapshot(Worker_SnapshotOutputStream* OutputStream, UWorld* World)
 		return false;
 	}
 
+	/*	CORVUS_BEGIN In my experience, there is no more need for the grid of "placeholder" entities that where used to allow workers to be authoritative over _something_
 	if (!CreatePlaceholders(OutputStream))
 	{
 		UE_LOG(LogSpatialGDKSnapshot, Error, TEXT("Error generating Placeholders in snapshot: %s"), UTF8_TO_TCHAR(Worker_SnapshotOutputStream_GetError(OutputStream)));
 		return false;
 	}
+	CORVUS_END */
 
 	if (!CreateStartupActors(OutputStream, World))
 	{
