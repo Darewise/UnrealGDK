@@ -164,8 +164,10 @@ bool ValidateIdentifierNames(TArray<TSharedPtr<FUnrealType>>& TypeInfos)
 }// ::
 
 
-void  GenerateSchemaFromClasses(const TArray<TSharedPtr<FUnrealType>>& TypeInfos, const FString& CombinedSchemaPath)
+void GenerateSchemaFromClasses(const TArray<TSharedPtr<FUnrealType>>& TypeInfos, const FString& CombinedSchemaPath)
 {
+	UE_LOG(LogSpatialGDKSchemaGenerator, Display, TEXT("GenerateSchemaFromClasses")); // CORVUS
+
 	// Generate the actual schema
 	for (const auto& TypeInfo : TypeInfos)
 	{
@@ -185,7 +187,9 @@ FString GenerateIntermediateDirectory()
 
 void SaveSchemaDatabase()
 {
-	AsyncTask(ENamedThreads::GameThread, []{
+	// CORVUS_BEGIN Synchronous SchemaDatabase generation for the Commandlet on the buildmachine to be able to save the uasset
+	if (ensure(IsInGameThread()))
+	{
 		FString PackagePath = TEXT("/Game/Spatial/SchemaDatabase");
 		UPackage *Package = CreatePackage(nullptr, *PackagePath);
 
@@ -204,14 +208,15 @@ void SaveSchemaDatabase()
 
 		FString FilePath = FString::Printf(TEXT("%s%s"), *PackagePath, *FPackageName::GetAssetPackageExtension());
 		bool bSuccess = UPackage::SavePackage(Package, SchemaDatabase, EObjectFlags::RF_Public | EObjectFlags::RF_Standalone, *FPackageName::LongPackageNameToFilename(PackagePath, FPackageName::GetAssetPackageExtension()));
-
+		UE_LOG(LogSpatialGDKSchemaGenerator, Display, TEXT("SaveSchemaDatabase: SavePackage=%d"), bSuccess);
 		if (!bSuccess)
 		{
 			FString FullPath = FPaths::ConvertRelativePathToFull(FilePath);
 			FPaths::MakePlatformFilename(FullPath);
 			FMessageDialog::Debugf(FText::FromString(FString::Printf(TEXT("Unable to save Schema Database to '%s'! Please make sure the file is writeable."), *FullPath)));
 		}
-	});
+	}
+	// CORVUS_END
 }
 
 TArray<UClass*> GetAllSupportedClasses()
@@ -260,6 +265,7 @@ void DeleteGeneratedSchemaFiles()
 	IPlatformFile& PlatformFile = FPlatformFileManager::Get().GetPlatformFile();
 	if (PlatformFile.DirectoryExists(*SchemaOutputPath))
 	{
+		UE_LOG(LogSpatialGDKSchemaGenerator, Display, TEXT("DeleteGeneratedSchemaFiles %s"), *SchemaOutputPath); // CORVUS
 		if (!PlatformFile.DeleteDirectoryRecursively(*SchemaOutputPath))
 		{
 			UE_LOG(LogSpatialGDKSchemaGenerator, Error, TEXT("Could not clean the generated schema directory '%s'! Please make sure the directory and the files inside are writeable."), *SchemaOutputPath);

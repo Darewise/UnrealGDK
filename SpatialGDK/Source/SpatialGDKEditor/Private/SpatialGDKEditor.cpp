@@ -36,26 +36,20 @@ void FSpatialGDKEditor::GenerateSchema(FSimpleDelegate SuccessCallback, FSimpleD
 
 	PreProcessSchemaMap();
 
-	SchemaGeneratorResult = Async<bool>(EAsyncExecution::Thread, SpatialGDKGenerateSchema,
-		[this, bCachedSpatialNetworking, SuccessCallback, FailureCallback]()
+	// CORVUS_BEGIN Synchronous schema generation for the Commandlet on the buildmachine to be able to save the SchemaDatabase uasset
+	UE_LOG(LogSpatialGDKEditor, Display, TEXT("SpatialGDKGenerateSchema..."));
+	const bool bSuccess = SpatialGDKGenerateSchema();
+	if (bSuccess)
 	{
-		if (!SchemaGeneratorResult.IsReady() || SchemaGeneratorResult.Get() != true)
-		{
-			if (FailureCallback.IsBound())
-			{
-				FailureCallback.Execute();
-			}
-		}
-		else
-		{
-			if (SuccessCallback.IsBound())
-			{
-				SuccessCallback.Execute();
-			}
-		}
-		GetMutableDefault<UGeneralProjectSettings>()->bSpatialNetworking = bCachedSpatialNetworking;
-		bSchemaGeneratorRunning = false;
-	});
+		SuccessCallback.ExecuteIfBound();
+	}
+	else
+	{
+		FailureCallback.ExecuteIfBound();
+	}
+	GetMutableDefault<UGeneralProjectSettings>()->bSpatialNetworking = bCachedSpatialNetworking;
+	bSchemaGeneratorRunning = false;
+	// CORVUS_END
 }
 
 void FSpatialGDKEditor::GenerateSnapshot(UWorld* World, FString SnapshotFilename, FSimpleDelegate SuccessCallback, FSimpleDelegate FailureCallback, FSpatialGDKEditorErrorHandler ErrorCallback)

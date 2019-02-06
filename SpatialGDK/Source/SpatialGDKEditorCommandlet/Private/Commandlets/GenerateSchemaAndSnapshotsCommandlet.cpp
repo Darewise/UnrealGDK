@@ -30,8 +30,10 @@ int32 UGenerateSchemaAndSnapshotsCommandlet::Main(const FString& Args)
 	FSpatialGDKEditor SpatialGDKEditor;
 	GenerateSchema(SpatialGDKEditor);
 
+	// CORVUS_BEGIN
 	const FString* OptionnalMapName = Params.Find(TEXT("Map"));
 	GenerateSnapshots(SpatialGDKEditor, OptionnalMapName);
+	// CORVUS_END
 
 	UE_LOG(LogSpatialGDKEditorCommandlet, Display, TEXT("Schema & Snapshot Generation Commandlet Complete"));
 
@@ -46,15 +48,18 @@ void UGenerateSchemaAndSnapshotsCommandlet::GenerateSchema(FSpatialGDKEditor& Sp
 		FSpatialGDKEditorErrorHandler::CreateLambda([](FString ErrorText) { UE_LOG(LogSpatialGDKEditorCommandlet, Error, TEXT("%s"), *ErrorText); }));
 	while (SpatialGDKEditor.IsSchemaGeneratorRunning())
 		FPlatformProcess::Sleep(0.1f);
+
+	UE_LOG(LogSpatialGDKEditorCommandlet, Display, TEXT("Schema Generation Commandlet Complete"));
 }
 
+// CORVUS_BEGIN InMapName
 void UGenerateSchemaAndSnapshotsCommandlet::GenerateSnapshots(FSpatialGDKEditor& SpatialGDKEditor, const FString* InMapName /* = nullptr */)
 {
 	const FString MapDir = TEXT("/Game");
 	const TArray<FString> MapFilePaths = GetAllMapPaths(MapDir);
 	for (FString MapFilePath : MapFilePaths)
 	{
-		if (!InMapName || (InMapName && MapFilePath.EndsWith(*InMapName)))
+		if (!InMapName || (InMapName && MapFilePath.EndsWith(*InMapName))) // CORVUS InMapName
 		{
 			GenerateSnapshotForMap(SpatialGDKEditor, MapFilePath);
 			if (InMapName)
@@ -62,6 +67,7 @@ void UGenerateSchemaAndSnapshotsCommandlet::GenerateSnapshots(FSpatialGDKEditor&
 		}
 	}
 }
+// CORVUS_END
 
 TArray<FString> UGenerateSchemaAndSnapshotsCommandlet::GetAllMapPaths(const FString& InMapsPath)
 {

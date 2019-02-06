@@ -21,7 +21,9 @@ public:
 
 private:
 	void GenerateSchema(FSpatialGDKEditor& SpatialGDKEditor);
+	// CORVUS_BEGIN InMapName
 	void GenerateSnapshots(FSpatialGDKEditor& SpatialGDKEditor, const FString* InMapName = nullptr);
+	// CORVUS_END
 	TArray<FString> GetAllMapPaths(const FString& InMapsPath);
 	void GenerateSnapshotForMap(FSpatialGDKEditor& SpatialGDKEditor, const FString& WorldPath);
 };
