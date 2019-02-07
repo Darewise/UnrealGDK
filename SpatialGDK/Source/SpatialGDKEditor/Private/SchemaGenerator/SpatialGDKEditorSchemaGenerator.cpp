@@ -337,11 +337,11 @@ FString GenerateIntermediateDirectory()
 	return AbsoluteCombinedIntermediatePath;
 }
 
-void SaveSchemaDatabase()
+void SaveSchemaDatabaseInGameThread()
 {
 	UE_LOG(LogSpatialGDKSchemaGenerator, Display, TEXT("SaveSchemaDatabase: AsyncTask..."));
 
-	AsyncTask(ENamedThreads::GameThread, []{
+	{
 		FString PackagePath = TEXT("/Game/Spatial/SchemaDatabase");
 		UPackage *Package = CreatePackage(nullptr, *PackagePath);
 
@@ -389,7 +389,19 @@ void SaveSchemaDatabase()
 		{
 			FMessageDialog::Debugf(FText::FromString(FString::Printf(TEXT("Unable to save Schema Database to '%s'! Please make sure the file is writeable."), *FullPath)));
 		}
-	});
+	}
+}
+
+void SaveSchemaDatabase()
+{
+	if (IsInGameThread())
+	{
+		SaveSchemaDatabaseInGameThread();
+	}
+	else
+	{
+		AsyncTask(ENamedThreads::GameThread, SaveSchemaDatabaseInGameThread);
+	}
 }
 
 TArray<UClass*> GetAllSupportedClasses()
