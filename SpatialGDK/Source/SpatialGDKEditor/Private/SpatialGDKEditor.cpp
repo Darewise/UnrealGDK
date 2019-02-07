@@ -38,7 +38,44 @@ void FSpatialGDKEditor::GenerateSchema(FSimpleDelegate SuccessCallback, FSimpleD
 
 	// CORVUS_BEGIN Synchronous schema generation for the Commandlet on the buildmachine to be able to save the SchemaDatabase uasset
 	UE_LOG(LogSpatialGDKEditor, Display, TEXT("SpatialGDKGenerateSchema..."));
-	const bool bSuccess = SpatialGDKGenerateSchema();
+	if (IsRunningCommandlet())
+	{
+		const bool bSuccess = SpatialGDKGenerateSchema();
+		if (bSuccess)
+		{
+			SuccessCallback.ExecuteIfBound();
+		}
+		else
+		{
+			FailureCallback.ExecuteIfBound();
+		}
+		GetMutableDefault<UGeneralProjectSettings>()->bSpatialNetworking = bCachedSpatialNetworking;
+		bSchemaGeneratorRunning = false;
+	}
+	else
+	// CORVUS_END
+	{
+		SchemaGeneratorResult = Async<bool>(EAsyncExecution::Thread, SpatialGDKGenerateSchema,
+			[this, bCachedSpatialNetworking, SuccessCallback, FailureCallback]()
+		{
+			const bool bSuccess = (SchemaGeneratorResult.IsReady() && SchemaGeneratorResult.Get() == true);
+			if (bSuccess)
+			{
+				SuccessCallback.ExecuteIfBound();
+			}
+			else
+			{
+				FailureCallback.ExecuteIfBound();
+			}
+			GetMutableDefault<UGeneralProjectSettings>()->bSpatialNetworking = bCachedSpatialNetworking;
+			bSchemaGeneratorRunning = false;
+		});
+	}
+}
+
+void FSpatialGDKEditor::GenerateSnapshot(UWorld* World, FString SnapshotFilename, FSimpleDelegate SuccessCallback, FSimpleDelegate FailureCallback, FSpatialGDKEditorErrorHandler ErrorCallback)
+{
+	const bool bSuccess = SpatialGDKGenerateSnapshot(World, SnapshotFilename);
 	if (bSuccess)
 	{
 		SuccessCallback.ExecuteIfBound();
@@ -46,28 +83,5 @@ void FSpatialGDKEditor::GenerateSchema(FSimpleDelegate SuccessCallback, FSimpleD
 	else
 	{
 		FailureCallback.ExecuteIfBound();
-	}
-	GetMutableDefault<UGeneralProjectSettings>()->bSpatialNetworking = bCachedSpatialNetworking;
-	bSchemaGeneratorRunning = false;
-	// CORVUS_END
-}
-
-void FSpatialGDKEditor::GenerateSnapshot(UWorld* World, FString SnapshotFilename, FSimpleDelegate SuccessCallback, FSimpleDelegate FailureCallback, FSpatialGDKEditorErrorHandler ErrorCallback)
-{
-	const bool bSuccess = SpatialGDKGenerateSnapshot(World, SnapshotFilename);
-
-	if (bSuccess)
-	{
-		if (SuccessCallback.IsBound())
-		{
-			SuccessCallback.Execute();
-		}
-	}
-	else
-	{
-		if (FailureCallback.IsBound())
-		{
-			FailureCallback.Execute();
-		}
 	}
 }
