@@ -427,7 +427,7 @@ void FSpatialGDKEditorToolbarModule::StartSpatialOSButtonClicked()
 	const FString SnapshotFilePath = FPaths::Combine(SpatialGDKSettings->GetSpatialOSSnapshotFolderPath(), SnapshotFilename);
 
 	const FString SpatialCmdArgument = FString::Printf(
-		TEXT("/c cmd.exe /c spatial.exe worker build build-config ^& spatial.exe local launch %s --snapshot=%s %s ^& pause"), *LaunchConfig, *SnapshotFilePath, *SpatialGDKSettings->GetSpatialOSCommandLineLaunchFlags());
+		TEXT("/c cmd.exe /c spatial.exe update ^& spatial.exe worker build build-config ^& spatial.exe local launch %s --snapshot=%s %s ^& pause"), *LaunchConfig, *SnapshotFilePath, *SpatialGDKSettings->GetSpatialOSCommandLineLaunchFlags());
 
 	UE_LOG(LogSpatialGDKEditorToolbar, Log, TEXT("Starting cmd.exe with `%s` arguments."), *SpatialCmdArgument);
 	// Temporary workaround: To get spatial.exe to properly show a window we have to call cmd.exe to
