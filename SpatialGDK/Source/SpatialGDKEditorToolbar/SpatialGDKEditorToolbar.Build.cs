@@ -27,7 +27,11 @@ public class SpatialGDKEditorToolbar : ModuleRules
                 "MessageLog",
                 "SpatialGDK",
                 "SpatialGDKEditor",
-                "UnrealEd"
+                "UnrealEd",
+
+                // CORVUS_BEGIN
+                "DWCommon",
+                "DWUnrealEditor",
             }
         );
     }
