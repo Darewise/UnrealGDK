@@ -244,6 +244,14 @@ public:
 	UPROPERTY(EditAnywhere, config, Category = "General", meta = (ConfigRestartRequired = false, DisplayName = "Show Spatial service button"))
 	bool bShowSpatialServiceButton;
 
+	/** If checked, show the Snapshot button on the GDK toolbar which can be used to generate a snapshot. */
+	UPROPERTY(EditAnywhere, config, Category = "General", meta = (ConfigRestartRequired = false, DisplayName = "Show Create Snapshot button"))
+	bool bShowCreateSpatialSnapshot;
+
+	/** If checked, show the Deploy button on the GDK toolbar which can be used to access the launch cloud deployment dialog. */
+	UPROPERTY(EditAnywhere, config, Category = "General", meta = (ConfigRestartRequired = false, DisplayName = "Show Open Deployment Dialog button"))
+	bool bShowDeploymentDialog;
+
 	/** Select to delete all a server-worker instance’s dynamically-spawned entities when the server-worker instance shuts down. If NOT selected, a new server-worker instance has all of these entities from the former server-worker instance’s session. */
 	UPROPERTY(EditAnywhere, config, Category = "Play in editor settings", meta = (ConfigRestartRequired = false, DisplayName = "Delete dynamically spawned entities"))
 	bool bDeleteDynamicEntities;
@@ -326,6 +334,26 @@ public:
 	/** If you have selected **Auto-generate launch configuration file**, you can change the default options in the file from the drop-down menu. */
 	UPROPERTY(EditAnywhere, config, Category = "Launch", meta = (EditCondition = "bGenerateDefaultLaunchConfig", ConfigRestartRequired = false, DisplayName = "Launch configuration file options"))
 	FSpatialLaunchConfigDescription LaunchConfigDesc;
+
+	// CORVUS_BEGIN
+
+	/** Additional command line flags passed in to the Dedicated Server in Local Workflow. */
+	UPROPERTY(EditAnywhere, config, Category = "Local Workflow", meta = (ConfigRestartRequired = false, DisplayName = "Command line flags for Dedicated Server"))
+	FString LocalWorflowServerCommandLineFlags;
+
+	/** Additional command line flags passed in to the Networked Client in Local Workflow. By default "-windowed -ResX=960 -ResY=540". */
+	UPROPERTY(EditAnywhere, config, Category = "Local Workflow", meta = (ConfigRestartRequired = false, DisplayName = "Command line flags for Networked Client"))
+	FString LocalWorflowClientCommandLineFlags;
+
+	/** IP Address of the Dedicated Server in Local Workflow. Only needed to connect from a remote computer. By default 127.0.0.1 */
+	UPROPERTY(EditAnywhere, config, Category = "Local Workflow", meta = (ConfigRestartRequired = false, DisplayName = "IP Address Dedicated Server"))
+	FString LocalWorflowServerIpAddr;
+
+	/** Use UE4Editor for local workflow instead of the real Dedicated Server & Networked Client executable. Useful for programmers to iterate quicker. */
+	UPROPERTY(EditAnywhere, config, Category = "Local Workflow", meta = (ConfigRestartRequired = false, DisplayName = "Local Workflow use UE4Editor"))
+	bool bLocalWorkflowUseUE4Editor;
+
+	// CORVUS_END
 
 	FORCEINLINE FString GetSpatialOSLaunchConfig() const
 	{

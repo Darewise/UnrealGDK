@@ -36,8 +36,17 @@
 
 #include "AssetRegistryModule.h"
 #include "GeneralProjectSettings.h"
+#include "Kismet/GameplayStatics.h"
 #include "LevelEditor.h"
 #include "Misc/FileHelper.h"
+
+// CORVUS_BEGIN
+#include "CoreGlobals.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Misc/MonitoredProcess.h"
+#include "DWCommon/Unreal/UnrealUtils.h"
+#include "DWUnrealEditor/UnrealEditorUtils.h"
+// CORVUS_END
 
 DEFINE_LOG_CATEGORY(LogSpatialGDKEditorToolbar);
 
@@ -136,11 +145,28 @@ void FSpatialGDKEditorToolbarModule::PreUnloadCallback()
 
 void FSpatialGDKEditorToolbarModule::Tick(float DeltaTime)
 {
+	// CORVUS_BEGIN
+	UnrealUtils::UpdateProcessHandle(ServerProcessHandle);
+	UnrealUtils::UpdateProcessHandle(AIServerProcessHandle);
+	if (CookMapProcess.IsValid() && !CookMapProcess->Update())
+	{
+		CookMapProcess.Reset();
+	}
+	if (PackageClientProcess.IsValid() && !PackageClientProcess->Update())
+	{
+		PackageClientProcess.Reset();
+	}
+	// CORVUS_END
 }
 
 bool FSpatialGDKEditorToolbarModule::CanExecuteSchemaGenerator() const
 {
-	return SpatialGDKEditorInstance.IsValid() && !SpatialGDKEditorInstance.Get()->IsSchemaGeneratorRunning();
+	return SpatialGDKEditorInstance.IsValid() && !SpatialGDKEditorInstance.Get()->IsSchemaGeneratorRunning() && !LocalDeploymentManager->IsLocalDeploymentRunning() && !CookMapProcess.IsValid();
+}
+
+bool FSpatialGDKEditorToolbarModule::GenericSpatialOSIsVisible() const
+{
+	return GetDefault<UGeneralProjectSettings>()->bSpatialNetworking;
 }
 
 bool FSpatialGDKEditorToolbarModule::CanExecuteSnapshotGenerator() const
@@ -148,17 +174,26 @@ bool FSpatialGDKEditorToolbarModule::CanExecuteSnapshotGenerator() const
 	return SpatialGDKEditorInstance.IsValid() && !SpatialGDKEditorInstance.Get()->IsSchemaGeneratorRunning();
 }
 
+bool FSpatialGDKEditorToolbarModule::CreateSnapshotIsVisible() const
+{
+	return GetDefault<UGeneralProjectSettings>()->bSpatialNetworking && GetDefault<USpatialGDKEditorSettings>()->bShowCreateSpatialSnapshot;
+}
+
 void FSpatialGDKEditorToolbarModule::MapActions(TSharedPtr<class FUICommandList> InPluginCommands)
 {
 	InPluginCommands->MapAction(
 		FSpatialGDKEditorToolbarCommands::Get().CreateSpatialGDKSchema,
 		FExecuteAction::CreateRaw(this, &FSpatialGDKEditorToolbarModule::SchemaGenerateButtonClicked),
-		FCanExecuteAction::CreateRaw(this, &FSpatialGDKEditorToolbarModule::CanExecuteSchemaGenerator));
-
+		FCanExecuteAction::CreateRaw(this, &FSpatialGDKEditorToolbarModule::CanExecuteSchemaGenerator),
+		FIsActionChecked(),
+		FIsActionButtonVisible::CreateRaw(this, &FSpatialGDKEditorToolbarModule::GenericSpatialOSIsVisible));
+	
 	InPluginCommands->MapAction(
 		FSpatialGDKEditorToolbarCommands::Get().CreateSpatialGDKSchemaFull,
 		FExecuteAction::CreateRaw(this, &FSpatialGDKEditorToolbarModule::SchemaGenerateFullButtonClicked),
-		FCanExecuteAction::CreateRaw(this, &FSpatialGDKEditorToolbarModule::CanExecuteSchemaGenerator));
+		FCanExecuteAction::CreateRaw(this, &FSpatialGDKEditorToolbarModule::CanExecuteSchemaGenerator),
+		FIsActionChecked(),
+		FIsActionButtonVisible::CreateRaw(this, &FSpatialGDKEditorToolbarModule::GenericSpatialOSIsVisible));
 
 	InPluginCommands->MapAction(
 		FSpatialGDKEditorToolbarCommands::Get().DeleteSchemaDatabase,
@@ -167,7 +202,9 @@ void FSpatialGDKEditorToolbarModule::MapActions(TSharedPtr<class FUICommandList>
 	InPluginCommands->MapAction(
 		FSpatialGDKEditorToolbarCommands::Get().CreateSpatialGDKSnapshot,
 		FExecuteAction::CreateRaw(this, &FSpatialGDKEditorToolbarModule::CreateSnapshotButtonClicked),
-		FCanExecuteAction::CreateRaw(this, &FSpatialGDKEditorToolbarModule::CanExecuteSnapshotGenerator));
+		FCanExecuteAction::CreateRaw(this, &FSpatialGDKEditorToolbarModule::CanExecuteSnapshotGenerator),
+		FIsActionChecked(),
+		FIsActionButtonVisible::CreateRaw(this, &FSpatialGDKEditorToolbarModule::CreateSnapshotIsVisible));
 
 	InPluginCommands->MapAction(
 		FSpatialGDKEditorToolbarCommands::Get().StartSpatialDeployment,
@@ -186,13 +223,17 @@ void FSpatialGDKEditorToolbarModule::MapActions(TSharedPtr<class FUICommandList>
 	InPluginCommands->MapAction(
 		FSpatialGDKEditorToolbarCommands::Get().LaunchInspectorWebPageAction,
 		FExecuteAction::CreateRaw(this, &FSpatialGDKEditorToolbarModule::LaunchInspectorWebpageButtonClicked),
-		FCanExecuteAction());
+		FCanExecuteAction::CreateRaw(this, &FSpatialGDKEditorToolbarModule::LaunchInspectorCanExecute),
+		FCanExecuteAction(),
+		FIsActionButtonVisible::CreateRaw(this, &FSpatialGDKEditorToolbarModule::GenericSpatialOSIsVisible));
 
 	InPluginCommands->MapAction(
 		FSpatialGDKEditorToolbarCommands::Get().OpenSimulatedPlayerConfigurationWindowAction,
 		FExecuteAction::CreateRaw(this, &FSpatialGDKEditorToolbarModule::ShowSimulatedPlayerDeploymentDialog),
-		FCanExecuteAction());
-	
+		FCanExecuteAction(),
+		FIsActionChecked(),
+		FIsActionButtonVisible::CreateRaw(this, &FSpatialGDKEditorToolbarModule::ShowDeploymentDialogIsVisible));
+
 	InPluginCommands->MapAction(
 		FSpatialGDKEditorToolbarCommands::Get().StartSpatialService,
 		FExecuteAction::CreateRaw(this, &FSpatialGDKEditorToolbarModule::StartSpatialServiceButtonClicked),
@@ -224,7 +265,7 @@ void FSpatialGDKEditorToolbarModule::SetupToolbar(TSharedPtr<class FUICommandLis
 	{
 		TSharedPtr<FExtender> ToolbarExtender = MakeShareable(new FExtender);
 		ToolbarExtender->AddToolBarExtension(
-			"Game", EExtensionHook::After, InPluginCommands,
+			"Game", EExtensionHook::Before, InPluginCommands,
 			FToolBarExtensionDelegate::CreateRaw(this,
 				&FSpatialGDKEditorToolbarModule::AddToolbarExtension));
 
@@ -236,10 +277,12 @@ void FSpatialGDKEditorToolbarModule::AddMenuExtension(FMenuBuilder& Builder)
 {
 	Builder.BeginSection("SpatialOS Unreal GDK", LOCTEXT("SpatialOS Unreal GDK", "SpatialOS Unreal GDK"));
 	{
+		/* CORVUS: no interest of putting all these in menus, especially not in Window menu (should use a dedicated one)
 		Builder.AddMenuEntry(FSpatialGDKEditorToolbarCommands::Get().CreateSpatialGDKSchema);
 		Builder.AddMenuEntry(FSpatialGDKEditorToolbarCommands::Get().CreateSpatialGDKSnapshot);
 		Builder.AddMenuEntry(FSpatialGDKEditorToolbarCommands::Get().StartSpatialDeployment);
 		Builder.AddMenuEntry(FSpatialGDKEditorToolbarCommands::Get().StopSpatialDeployment);
+		*/
 		Builder.AddMenuEntry(FSpatialGDKEditorToolbarCommands::Get().LaunchInspectorWebPageAction);
 		Builder.AddMenuEntry(FSpatialGDKEditorToolbarCommands::Get().OpenSimulatedPlayerConfigurationWindowAction);
 		Builder.AddMenuEntry(FSpatialGDKEditorToolbarCommands::Get().StartSpatialService);
@@ -267,6 +310,16 @@ void FSpatialGDKEditorToolbarModule::AddToolbarExtension(FToolBarBuilder& Builde
 	Builder.AddToolBarButton(FSpatialGDKEditorToolbarCommands::Get().OpenSimulatedPlayerConfigurationWindowAction);
 	Builder.AddToolBarButton(FSpatialGDKEditorToolbarCommands::Get().StartSpatialService);
 	Builder.AddToolBarButton(FSpatialGDKEditorToolbarCommands::Get().StopSpatialService);
+
+	// CORVUS_BEGIN
+	Builder.AddComboButton(
+		FUIAction(),
+		FOnGetContent::CreateRaw(this, &FSpatialGDKEditorToolbarModule::GenerateComboMenu),
+		LOCTEXT("LocalWorkflow_Short", "Local"),
+		LOCTEXT("LocalWorkflow_ToolTip", "Local Workflow menu"),
+		FSlateIcon(FEditorStyle::GetStyleSetName(), "PlayWorld.Simulate")
+	);
+	// CORVUS_END
 }
 
 TSharedRef<SWidget> FSpatialGDKEditorToolbarModule::CreateGenerateSchemaMenuContent()
@@ -281,6 +334,96 @@ TSharedRef<SWidget> FSpatialGDKEditorToolbarModule::CreateGenerateSchemaMenuCont
 
 	return MenuBuilder.MakeWidget();
 }
+
+// CORVUS_BEGIN
+TSharedRef<SWidget> FSpatialGDKEditorToolbarModule::GenerateComboMenu()
+{
+	const bool bShouldCloseWindowAfterMenuSelection = true;
+	FMenuBuilder MenuBuilder(bShouldCloseWindowAfterMenuSelection, PluginCommands);
+
+	MenuBuilder.BeginSection(NAME_None, LOCTEXT("LocalWorkflow", "Local Workflow"));
+	{
+		// tip section
+		MenuBuilder.AddWidget(
+			SNew(STextBlock)
+			.ColorAndOpacity(FSlateColor::UseSubduedForeground())
+			.Text(LOCTEXT("LocalWorkflowTip", "Launch a dedicated server and networked game client(s)\nPlease execute steps in order."))
+			.WrapTextAt(200),
+			FText::GetEmpty());
+		MenuBuilder.AddMenuEntry(
+			LOCTEXT("LoadSublevels", "Load sub-levels"),
+			TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateRaw(this, &FSpatialGDKEditorToolbarModule::LoadSublevelsTooltip)),
+			FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.Tabs.WorldBrowser"),
+			FUIAction(
+				FExecuteAction::CreateRaw(this, &FSpatialGDKEditorToolbarModule::LoadSublevels),
+				FCanExecuteAction::CreateRaw(this, &FSpatialGDKEditorToolbarModule::CanLoadSublevels)
+			)
+		);
+		MenuBuilder.AddMenuEntry(FSpatialGDKEditorToolbarCommands::Get().CreateSpatialGDKSchema);
+		MenuBuilder.AddMenuEntry(
+			LOCTEXT("CookMap", "Cook Current Map"),
+			TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateRaw(this, &FSpatialGDKEditorToolbarModule::CookMapTooltip)),
+			FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.Build"),
+			FUIAction(
+				FExecuteAction::CreateRaw(this, &FSpatialGDKEditorToolbarModule::CookMap),
+				FCanExecuteAction::CreateRaw(this, &FSpatialGDKEditorToolbarModule::CanCookMap)
+			)
+		);
+		MenuBuilder.AddMenuEntry(FSpatialGDKEditorToolbarCommands::Get().StartSpatialDeployment);
+		MenuBuilder.AddMenuEntry(FSpatialGDKEditorToolbarCommands::Get().StopSpatialDeployment);
+		MenuBuilder.AddMenuEntry(
+			LOCTEXT("LaunchDedicatedServer", "Launch Dedicated Server"),
+			TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateRaw(this, &FSpatialGDKEditorToolbarModule::LaunchDedicatedServerTooltip)),
+			FSlateIcon(FEditorStyle::GetStyleSetName(), "PlayWorld.PlayInNewProcess"),
+			FUIAction(
+				FExecuteAction::CreateRaw(this, &FSpatialGDKEditorToolbarModule::LaunchDedicatedServer),
+				FCanExecuteAction::CreateRaw(this, &FSpatialGDKEditorToolbarModule::CanLaunchDedicatedServer)
+			)
+		);
+		MenuBuilder.AddMenuEntry(
+			LOCTEXT("LaunchNetworkedClient", "Launch Networked Client"),
+			TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateRaw(this, &FSpatialGDKEditorToolbarModule::LaunchNetworkedClientTooltip)),
+			FSlateIcon(FEditorStyle::GetStyleSetName(), "PlayWorld.PlayInEditorFloating"),
+			FUIAction(
+				FExecuteAction::CreateRaw(this, &FSpatialGDKEditorToolbarModule::LaunchNetworkedClient),
+				FCanExecuteAction::CreateRaw(this, &FSpatialGDKEditorToolbarModule::CanLaunchNetworkedClient)
+			)
+		);
+	}
+	MenuBuilder.EndSection();
+	MenuBuilder.BeginSection(NAME_None);
+	{
+		MenuBuilder.AddMenuEntry(
+			LOCTEXT("ExploreDedicatedServerLogs", "Show Dedicated Server logs"),
+			LOCTEXT("ExploreDedicatedServerLogsToolTip", "Open File Explorer to show log files of the Dedicated Server"),
+			FSlateIcon(FEditorStyle::GetStyleSetName(), "MessageLog.TabIcon"),
+			FUIAction(FExecuteAction::CreateRaw(this, &FSpatialGDKEditorToolbarModule::ExploreDedicatedServerLogs))
+		);
+		MenuBuilder.AddMenuEntry(
+			LOCTEXT("ExploreNetworkedClientLogs", "Show Networked Client logs"),
+			LOCTEXT("ExploreDedicatedServerLogsToolTip", "Open File Explorer to show log files of the Networked Client"),
+			FSlateIcon(FEditorStyle::GetStyleSetName(), "MessageLog.TabIcon"),
+			FUIAction(FExecuteAction::CreateRaw(this, &FSpatialGDKEditorToolbarModule::ExploreNetworkedClientLogs))
+		);
+	}
+	MenuBuilder.EndSection();
+	MenuBuilder.BeginSection(NAME_None);
+	{
+		MenuBuilder.AddMenuEntry(
+			LOCTEXT("PackageNetworkedClient", "Package Networked Client"),
+			TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateRaw(this, &FSpatialGDKEditorToolbarModule::PackageNetworkedClientTooltip)),
+			FSlateIcon(FEditorStyle::GetStyleSetName(), "MainFrame.PackageProject"),
+			FUIAction(
+				FExecuteAction::CreateRaw(this, &FSpatialGDKEditorToolbarModule::PackageNetworkedClient),
+				FCanExecuteAction::CreateRaw(this, &FSpatialGDKEditorToolbarModule::CanPackageNetworkedClient)
+			)
+		);
+	}
+	MenuBuilder.EndSection();
+
+	return MenuBuilder.MakeWidget();
+}
+// CORVUS_END
 
 void FSpatialGDKEditorToolbarModule::CreateSnapshotButtonClicked()
 {
@@ -682,17 +825,17 @@ bool FSpatialGDKEditorToolbarModule::StartSpatialDeploymentIsVisible() const
 {
 	if (LocalDeploymentManager->IsSpatialServiceRunning())
 	{
-		return !LocalDeploymentManager->IsLocalDeploymentRunning();
+		return GetDefault<UGeneralProjectSettings>()->bSpatialNetworking && !LocalDeploymentManager->IsLocalDeploymentRunning();
 	}
 	else
 	{
-		return true;
+		return GetDefault<UGeneralProjectSettings>()->bSpatialNetworking;
 	}
 }
 
 bool FSpatialGDKEditorToolbarModule::StartSpatialDeploymentCanExecute() const
 {
-	return !LocalDeploymentManager->IsDeploymentStarting() && GetDefault<UGeneralProjectSettings>()->bSpatialNetworking;
+	return !LocalDeploymentManager->IsDeploymentStarting() && GetDefault<UGeneralProjectSettings>()->bSpatialNetworking && !CookMapProcess.IsValid();
 }
 
 bool FSpatialGDKEditorToolbarModule::StopSpatialDeploymentIsVisible() const
@@ -702,14 +845,19 @@ bool FSpatialGDKEditorToolbarModule::StopSpatialDeploymentIsVisible() const
 
 bool FSpatialGDKEditorToolbarModule::StopSpatialDeploymentCanExecute() const
 {
-	return !LocalDeploymentManager->IsDeploymentStopping();
+	return !LocalDeploymentManager->IsDeploymentStopping() && !CookMapProcess.IsValid();
+}
+
+bool FSpatialGDKEditorToolbarModule::LaunchInspectorCanExecute() const
+{
+	return LocalDeploymentManager->IsLocalDeploymentRunning();
 }
 
 bool FSpatialGDKEditorToolbarModule::StartSpatialServiceIsVisible() const
 {
 	const USpatialGDKEditorSettings* SpatialGDKSettings = GetDefault<USpatialGDKEditorSettings>();
 
-	return SpatialGDKSettings->bShowSpatialServiceButton && !LocalDeploymentManager->IsSpatialServiceRunning();
+	return GetDefault<UGeneralProjectSettings>()->bSpatialNetworking && SpatialGDKSettings->bShowSpatialServiceButton && !LocalDeploymentManager->IsSpatialServiceRunning();
 }
 
 bool FSpatialGDKEditorToolbarModule::StartSpatialServiceCanExecute() const
@@ -721,7 +869,7 @@ bool FSpatialGDKEditorToolbarModule::StopSpatialServiceIsVisible() const
 {
 	const USpatialGDKEditorSettings* SpatialGDKSettings = GetDefault<USpatialGDKEditorSettings>();
 
-	return SpatialGDKSettings->bShowSpatialServiceButton && LocalDeploymentManager->IsSpatialServiceRunning();
+	return GetDefault<UGeneralProjectSettings>()->bSpatialNetworking && SpatialGDKSettings->bShowSpatialServiceButton && LocalDeploymentManager->IsSpatialServiceRunning();
 }
 
 bool FSpatialGDKEditorToolbarModule::StopSpatialServiceCanExecute() const
@@ -789,6 +937,11 @@ void FSpatialGDKEditorToolbarModule::ShowSimulatedPlayerDeploymentDialog()
 	);
 
 	FSlateApplication::Get().AddWindow(SimulatedPlayerDeploymentWindowPtr.ToSharedRef());
+}
+
+bool FSpatialGDKEditorToolbarModule::ShowDeploymentDialogIsVisible() const
+{
+	return GetDefault<UGeneralProjectSettings>()->bSpatialNetworking && GetDefault<USpatialGDKEditorSettings>()->bShowDeploymentDialog;
 }
 
 void FSpatialGDKEditorToolbarModule::GenerateSchema(bool bFullScan)
@@ -861,6 +1014,242 @@ FString FSpatialGDKEditorToolbarModule::GetOptionalExposedRuntimeIP() const
 		return TEXT("");
 	}
 }
+
+// CORVUS_BEGIN
+void FSpatialGDKEditorToolbarModule::LoadSublevels()
+{
+	// Display a notification an add a delay to let it shows up since the snapshot can stall the editor for a while
+	UnrealUtils::DisplayNotification(TEXT("Loading sublevels..."));
+	UnrealUtils::DelayedExecUnsafe(*GEditor->GetTimerManager(), 0.5f, [this]() {
+		// In World Composition, we need to load all sub-levels to populate the snapshot
+		UnrealUtils::LoadWorldCompositionStreamingLevels();
+	});
+}
+
+bool FSpatialGDKEditorToolbarModule::CanLoadSublevels() const
+{
+	// Can package networked client only if cooking is not running
+	// Can package networked client only if packaging not already in progress
+	// Can package networked client only if SpatialOS not already running
+	return !CookMapProcess.IsValid() && !PackageClientProcess.IsValid() && !LocalDeploymentManager->IsLocalDeploymentRunning();
+}
+
+FText FSpatialGDKEditorToolbarModule::LoadSublevelsTooltip() const
+{
+	if (CookMapProcess.IsValid())
+		return LOCTEXT("CookMapRunning_Tooltip", "Cooking map in progress.");
+	else if (PackageClientProcess.IsValid())
+		return LOCTEXT("PackageNetworkedClientRunning_Tooltip", "Packaging client in progress.");
+	else
+		return LOCTEXT("LoadSublevels_Tooltip", "Load distance-dependent streaming levels (excluding those with streaming disabled).\nRequired before generating schema if the map uses World Composition.");
+}
+
+void FSpatialGDKEditorToolbarModule::CookMap()
+{
+	// Prompt to save or discard all packages
+	if (!UnrealUtils::PromptUserToSaveDirtyPackages())
+	{
+		UnrealUtils::DisplayNotification(TEXT("Unsaved Content. You need to save all before Cooking."), false);
+		return;
+	}
+
+	const FString AutomationTool = FPaths::RootDir() / TEXT("Engine/Binaries/DotNET/AutomationTool.exe");
+	const FString CurrentLevelName = UGameplayStatics::GetCurrentLevelName(GEditor->GetEditorWorldContext().World());
+	const FString ProjectFilePath = FPaths::ConvertRelativePathToFull(FPaths::GetProjectFilePath());
+	const FString CommandLineArgs = FString::Printf(TEXT("BuildCookRun -project=\"%s\" -unattended -noP4 -Map=%s -clientconfig=Development -platform=Win64 -server -serverconfig=Development -serverplatform=Win64 -nocompile -nocompileeditor -cook -iterativecooking -SkipCookingEditorContent -unversioned"), *ProjectFilePath, *CurrentLevelName);
+	CookMapProcess = UnrealUtils::LaunchMonitoredProcess(TEXT("Cooking Map"), AutomationTool, CommandLineArgs);
+}
+
+bool FSpatialGDKEditorToolbarModule::CanCookMap() const
+{
+	// Can launch cooking only if not already running
+	// Can launch cooking only if SpatialOS not already running (because Cook Map is somehow killing any running SpatialOS)
+	// Can launch cooking only if dedicated server not already running
+	// TODO: we should check for network client(s) (at least the first one)
+	return !CookMapProcess.IsValid() && !LocalDeploymentManager->IsLocalDeploymentRunning() && !ServerProcessHandle.IsValid();
+}
+
+FText FSpatialGDKEditorToolbarModule::CookMapTooltip() const
+{
+	if (CookMapProcess.IsValid())
+		return LOCTEXT("CookMapRunning_Tooltip", "Cooking map in progress.");
+	else if (ServerProcessHandle.IsValid())
+		return LOCTEXT("CookMapWorkerRunning_Tooltip", "Cannot cook map with server or client running.");
+	else
+		return LOCTEXT("CookMap_Tooltip", "Cook all data related to the current map.\nRequired to launch a dedicated server or networked client.");
+}
+
+void FSpatialGDKEditorToolbarModule::LaunchDedicatedServer()
+{
+	static const FString ProjectPath = FPaths::ConvertRelativePathToFull(FPaths::GetProjectFilePath());
+	static const FString WorkingDir = FPaths::ConvertRelativePathToFull(FPaths::ProjectDir());
+	static const FString ServerPath = WorkingDir / TEXT("Binaries/Win64/CorvusServer.exe");
+	static const FString EngineDir = FPaths::ConvertRelativePathToFull(FPaths::EngineDir());
+	static const FString EditorPath = EngineDir / TEXT("Binaries/Win64/UE4Editor.exe");
+
+	const FString CurrentLevelName = UGameplayStatics::GetCurrentLevelName(GEditor->GetEditorWorldContext().World());
+	const USpatialGDKEditorSettings* Settings = GetDefault<USpatialGDKEditorSettings>();
+	const FString CommandLineFlags = Settings->LocalWorflowServerCommandLineFlags;
+	const bool bLocalWorkflowUseUE4Editor = Settings->bLocalWorkflowUseUE4Editor;
+
+	// Launch the real dedicated server executable
+	const FString CommandLineArgs = FString::Printf(
+		TEXT("%s %s -server +appName corvus +projectName corvus +deploymentName corvus_local_workflow +workerType UnrealWorker +useExternalIpForBridge true -messaging -SessionName=\"Local Workflow UnrealWorker Server\" -log -nopauseonsuccess -NoVerifyGC %s"),
+		*ProjectPath, *CurrentLevelName, *CommandLineFlags);
+
+	ServerProcessHandle = UnrealUtils::LaunchProcess(bLocalWorkflowUseUE4Editor ? EditorPath : ServerPath, CommandLineArgs, WorkingDir);
+
+	UnrealUtils::DisplayNotification(ServerProcessHandle.IsValid()
+		? FString::Printf(TEXT("Dedicated Server Starting on %s..."), *CurrentLevelName)
+		: TEXT("Failed to start Dedicated Server"),
+		ServerProcessHandle.IsValid());
+
+	// Launch the AI worker server executable
+	if (GetDefault<USpatialGDKSettings>()->bEnableOffloading)
+	{
+		const FString AICommandLineArgs = FString::Printf(
+			TEXT("%s %s -server +appName corvus +projectName corvus +deploymentName corvus_local_workflow +workerType AIWorker +useExternalIpForBridge true -messaging -SessionName=\"Local Workflow AIWorker Server\" -log -nopauseonsuccess -NoVerifyGC %s"),
+			*ProjectPath, *CurrentLevelName, *CommandLineFlags);
+
+		AIServerProcessHandle = UnrealUtils::LaunchProcess(bLocalWorkflowUseUE4Editor ? EditorPath : ServerPath, AICommandLineArgs, WorkingDir);
+
+		UnrealUtils::DisplayNotification(AIServerProcessHandle.IsValid()
+			? FString::Printf(TEXT("AI Worker Starting on %s..."), *CurrentLevelName)
+			: TEXT("Failed to start AI Worker"),
+			AIServerProcessHandle.IsValid());
+	}
+}
+
+bool FSpatialGDKEditorToolbarModule::CanLaunchDedicatedServer() const
+{
+	// Can launch dedicated server only if cooking is not running
+	// Can launch dedicated server only if SpatialOS is running OR is not used
+	// Can launch dedicated server only if not already running
+	return !CookMapProcess.IsValid() && (LocalDeploymentManager->IsLocalDeploymentRunning() || !GetDefault<UGeneralProjectSettings>()->bSpatialNetworking) && !ServerProcessHandle.IsValid();
+}
+
+FText FSpatialGDKEditorToolbarModule::LaunchDedicatedServerTooltip() const
+{
+	if (CookMapProcess.IsValid())
+		return LOCTEXT("CookMapRunning_Tooltip", "Cooking map in progress.");
+	else if (!LocalDeploymentManager->IsLocalDeploymentRunning() && GetDefault<UGeneralProjectSettings>()->bSpatialNetworking)
+		return LOCTEXT("SpatialOsNotRunning_Tooltip", "SpatialOS is not running.");
+	else if (ServerProcessHandle.IsValid())
+		return LOCTEXT("DedicatedServerRunning_Tooltip", "Dedicated Server is running.");
+	else if (GetDefault<USpatialGDKEditorSettings>()->bLocalWorkflowUseUE4Editor)
+		return LOCTEXT("LaunchNetworkedClient_Tooltip", "Launch a dedicated server worker in a new process.\nUses the Unreal Editor executable.");
+	else
+		return LOCTEXT("LaunchDedicatedServer_Tooltip", "Launch a dedicated server worker in a new process.\nUses the final server executable.");
+}
+
+void FSpatialGDKEditorToolbarModule::LaunchNetworkedClient()
+{
+	static const FString ProjectPath = FPaths::ConvertRelativePathToFull(FPaths::GetProjectFilePath());
+	static const FString WorkingDir = FPaths::ConvertRelativePathToFull(FPaths::ProjectDir());
+	static const FString ClientPath = WorkingDir / TEXT("Binaries/Win64/Corvus.exe");
+	static const FString EngineDir = FPaths::ConvertRelativePathToFull(FPaths::EngineDir());
+	static const FString EditorPath = EngineDir / TEXT("Binaries/Win64/UE4Editor.exe");
+
+	const USpatialGDKEditorSettings* Settings = GetDefault<USpatialGDKEditorSettings>();
+	const FString ServerIpAddr = Settings->LocalWorflowServerIpAddr.IsEmpty() ? TEXT("127.0.0.1") : Settings->LocalWorflowServerIpAddr;
+	const FString CommandLineFlags = Settings->LocalWorflowClientCommandLineFlags;
+	const bool bLocalWorkflowUseUE4Editor = Settings->bLocalWorkflowUseUE4Editor;
+
+	const FString CommandLineArgs = FString::Printf(
+		TEXT("%s %s -game +appName corvus +projectName corvus +deploymentName corvus_local_workflow +workerType UnrealClient +useExternalIpForBridge true -messaging -SessionName=\"Local Workflow UnrealClient\" -log -NoVerifyGC %s"),
+		*ProjectPath, *ServerIpAddr, *CommandLineFlags);
+
+	FProcHandle ClientProcessHandle = UnrealUtils::LaunchProcess(bLocalWorkflowUseUE4Editor ? EditorPath : ClientPath, CommandLineArgs, WorkingDir);
+
+	UnrealUtils::DisplayNotification(ClientProcessHandle.IsValid()
+		? FString::Printf(TEXT("Network Client Starting on %s..."), *ServerIpAddr)
+		: TEXT("Failed to start Network Client"),
+		ClientProcessHandle.IsValid());
+	FPlatformProcess::CloseProc(ClientProcessHandle);
+}
+
+bool FSpatialGDKEditorToolbarModule::CanLaunchNetworkedClient() const
+{
+	// Can launch networked client only if cooking is not running
+	// Can launch networked client only if SpatialOS is running OR is not used
+	// Can launch networked client only with the dedicated server running
+	return !CookMapProcess.IsValid() && (LocalDeploymentManager->IsLocalDeploymentRunning() || !GetDefault<UGeneralProjectSettings>()->bSpatialNetworking) && ServerProcessHandle.IsValid();
+}
+
+FText FSpatialGDKEditorToolbarModule::LaunchNetworkedClientTooltip() const
+{
+	if (CookMapProcess.IsValid())
+		return LOCTEXT("CookMapRunning_Tooltip", "Cooking map in progress.");
+	else if (!LocalDeploymentManager->IsLocalDeploymentRunning() && GetDefault<UGeneralProjectSettings>()->bSpatialNetworking)
+		return LOCTEXT("SpatialOsNotRunning_Tooltip", "SpatialOS is not running.");
+	else if (!ServerProcessHandle.IsValid())
+		return LOCTEXT("DedicatedServerNotRunning_Tooltip", "Dedicated server is not running.");
+	else if (GetDefault<USpatialGDKEditorSettings>()->bLocalWorkflowUseUE4Editor)
+		return LOCTEXT("LaunchNetworkedClient_Tooltip", "Launch a networked client in a new process.\nUses the Unreal Editor executable.");
+	else
+		return LOCTEXT("LaunchNetworkedClient_Tooltip", "Launch a networked client in a new process.\nUses the final game client executable.");
+}
+
+void FSpatialGDKEditorToolbarModule::ExploreDedicatedServerLogs() const
+{
+	static const FString SavedPath = FPaths::ConvertRelativePathToFull(FPaths::ProjectSavedDir());
+	const FString LogsPath = FPaths::Combine(SavedPath, TEXT("Cooked/WindowsServer/Corvus/Saved/Logs/"));
+	FPlatformProcess::ExploreFolder(*LogsPath);
+}
+
+void FSpatialGDKEditorToolbarModule::ExploreNetworkedClientLogs()
+{
+	static const FString SavedPath = FPaths::ConvertRelativePathToFull(FPaths::ProjectSavedDir());
+	const FString LogsPath = FPaths::Combine(SavedPath, TEXT("Cooked/WindowsNoEditor/Corvus/Saved/Logs/"));
+	FPlatformProcess::ExploreFolder(*LogsPath);
+}
+
+void FSpatialGDKEditorToolbarModule::PackageNetworkedClient()
+{
+	FString PackageClientBatch = FPaths::RootDir() / TEXT("../Tools/LocalDemo/package_game_client.bat");
+	FPaths::CollapseRelativeDirectories(PackageClientBatch);
+	const FString CommandLineArgs = FString::Printf(TEXT("/c \"%s\""), *PackageClientBatch);
+	if (FPaths::FileExists(PackageClientBatch))
+	{
+		PackageClientProcess = UnrealUtils::LaunchMonitoredProcess(TEXT("Packaging Client"), TEXT("cmd.exe"), CommandLineArgs);
+	}
+	else
+	{
+		UnrealUtils::DisplayNotification(FString::Printf(TEXT("%s not found"), *PackageClientBatch), false);
+	}
+}
+
+bool FSpatialGDKEditorToolbarModule::CanPackageNetworkedClient() const
+{
+	// Compare current & default map from settings to control the package of the network client: what matters is what the server loads
+	const FString CurrentLevelName = UGameplayStatics::GetCurrentLevelName(GEditor->GetEditorWorldContext().World());
+	FString ServerDefaultMap;
+	GConfig->GetString(TEXT("/Script/EngineSettings.GameMapsSettings"), TEXT("ServerDefaultMap"), ServerDefaultMap, GEngineIni);
+
+	// Can package networked client only if cooking is not running
+	// Can package networked client only if packaging not already in progress
+	// Can package networked client only if configured Server Default Map matches Current Level
+	return !CookMapProcess.IsValid() && !PackageClientProcess.IsValid() && ServerDefaultMap.EndsWith(CurrentLevelName);
+}
+
+FText FSpatialGDKEditorToolbarModule::PackageNetworkedClientTooltip() const
+{
+	// Compare current & default map from settings to control the package of the network client: what matters is what the server loads
+	const FString CurrentLevelName = UGameplayStatics::GetCurrentLevelName(GEditor->GetEditorWorldContext().World());
+	FString ServerDefaultMap;
+	GConfig->GetString(TEXT("/Script/EngineSettings.GameMapsSettings"), TEXT("ServerDefaultMap"), ServerDefaultMap, GEngineIni);
+
+	if (CookMapProcess.IsValid())
+		return LOCTEXT("CookMapRunning_Tooltip", "Cooking map in progress.");
+	else if (PackageClientProcess.IsValid())
+		return LOCTEXT("PackageNetworkedClientRunning_Tooltip", "Packaging client in progress.");
+	else if (!ServerDefaultMap.EndsWith(CurrentLevelName))
+		return LOCTEXT("WrongDefaultMap_Tooltip", "Server Default Map does not match current map. Set it properly in Project Settings.");
+	else
+		return LOCTEXT("PackageNetworkedClient_Tooltip", "Package a networked client with Server Default Map for remote multi-player game.\nWill connect to the dedicated server at the current IP Address.");
+}
+
+// CORVUS_END
 
 #undef LOCTEXT_NAMESPACE
 
