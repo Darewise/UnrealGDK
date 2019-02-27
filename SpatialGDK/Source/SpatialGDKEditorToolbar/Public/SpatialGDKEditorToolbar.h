@@ -21,6 +21,7 @@ class FUICommandList;
 class SSpatialGDKCloudDeploymentConfiguration;
 class SWindow;
 class USoundBase;
+class FMonitoredProcess;
 
 struct FWorkerTypeLaunchSection;
 class UAbstractRuntimeLoadBalancingStrategy;
@@ -68,6 +69,7 @@ private:
 	void SetupToolbar(TSharedPtr<FUICommandList> PluginCommands);
 	void AddToolbarExtension(FToolBarBuilder& Builder);
 	void AddMenuExtension(FMenuBuilder& Builder);
+	TSharedRef<SWidget> GenerateComboMenu();
 
 	void VerifyAndStartDeployment();
 
@@ -88,6 +90,8 @@ private:
 
 	bool StopSpatialDeploymentIsVisible() const;
 	bool StopSpatialDeploymentCanExecute() const;
+
+	bool LaunchInspectorCanExecute() const;
 
 	bool StartSpatialServiceIsVisible() const;
 	bool StartSpatialServiceCanExecute() const;
@@ -119,8 +123,32 @@ private:
 	void DeleteSchemaDatabaseButtonClicked();
 	void OnPropertyChanged(UObject* ObjectBeingModified, FPropertyChangedEvent& PropertyChangedEvent);
 
+	// CORVUS_BEGIN
+	void LoadSublevels();
+	bool CanLoadSublevels() const;
+	FText LoadSublevelsTooltip() const;
+	void CookMap();
+	bool CanCookMap() const;
+	FText CookMapLabel() const;
+	FText CookMapTooltip() const;
+	void LaunchDedicatedServer();
+	bool CanLaunchDedicatedServer() const;
+	FText LaunchDedicatedServerTooltip() const;
+	void LaunchNetworkedClient();
+	bool CanLaunchNetworkedClient() const;
+	FText LaunchNetworkedClientTooltip() const;
+	void ExploreDedicatedServerLogs() const;
+	void ExploreNetworkedClientLogs();
+	void ShowSpatialSettings();
+	void ShowMapsSettings();
+	void PackageNetworkedClient();
+	bool CanPackageNetworkedClient() const;
+	FText PackageNetworkedClientTooltip() const;
+	// CORVUS_END
+
 	void ShowCloudDeploymentDialog();
-	void OpenLaunchConfigurationEditor();
+	bool ShowDeploymentDialogIsVisible() const;
+	void OpenLaunchConfigurationEditor(); // CORVUS
 	void LaunchOrShowCloudDeployment();
 
 	/** Delegate to determine the 'Start Deployment' button enabled state */
@@ -134,7 +162,9 @@ private:
 
 private:
 	bool CanExecuteSchemaGenerator() const;
+	bool GenericSpatialOSIsVisible() const;
 	bool CanExecuteSnapshotGenerator() const;
+	bool CreateSnapshotIsVisible() const;
 
 	TSharedRef<SWidget> CreateGenerateSchemaMenuContent();
 	TSharedRef<SWidget> CreateLaunchDeploymentMenuContent();
@@ -163,6 +193,13 @@ private:
 	bool bSchemaBuildError;
 
 	TWeakPtr<SNotificationItem> TaskNotificationPtr;
+
+	// CORVUS_BEGIN Local Workflow
+	FProcHandle ServerProcessHandle;
+	FProcHandle AIServerProcessHandle;
+	TSharedPtr<FMonitoredProcess> CookMapProcess;
+	TSharedPtr<FMonitoredProcess> PackageClientProcess;
+	// CORVUS_END
 
 	// Sounds used for execution of tasks.
 	USoundBase* ExecutionStartSound;

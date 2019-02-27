@@ -42,5 +42,15 @@ public class SpatialGDKEditorToolbar : ModuleRules
                 "UATHelper"
             }
         );
+
+        // CORVUS_BEGIN
+        PrivateDependencyModuleNames.AddRange(
+            new string[]
+            {
+                "DWCommon",
+                "DWUnrealEditor",
+            }
+        );
+        // CORVUS_END
     }
 }

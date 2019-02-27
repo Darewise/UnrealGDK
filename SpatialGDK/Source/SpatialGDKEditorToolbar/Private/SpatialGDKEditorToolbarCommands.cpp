@@ -6,7 +6,7 @@
 
 void FSpatialGDKEditorToolbarCommands::RegisterCommands()
 {
-	UI_COMMAND(CreateSpatialGDKSchema, "Schema", "Creates SpatialOS Unreal GDK schema for assets in memory.", EUserInterfaceActionType::Button, FInputGesture());
+	UI_COMMAND(CreateSpatialGDKSchema, "Schema", "Creates SpatialOS Unreal GDK schema for assets in memory.\nYou must generate schema when you add or change any replicated properties.\nhttps://docs.improbable.io/unreal/alpha/content/schema", EUserInterfaceActionType::Button, FInputGesture());
 	UI_COMMAND(CreateSpatialGDKSchemaFull, "Schema (Full Scan)", "Creates SpatialOS Unreal GDK schema for all assets.", EUserInterfaceActionType::Button, FInputGesture());
 	UI_COMMAND(DeleteSchemaDatabase, "Delete schema database", "Deletes the schema database file", EUserInterfaceActionType::Button, FInputGesture());
 	UI_COMMAND(CreateSpatialGDKSnapshot, "Snapshot", "Creates SpatialOS Unreal GDK snapshot.", EUserInterfaceActionType::Button, FInputGesture());
