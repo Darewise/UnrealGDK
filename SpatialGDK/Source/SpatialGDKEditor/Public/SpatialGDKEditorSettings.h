@@ -227,6 +227,32 @@ namespace ERegionCode
 	};
 }
 
+/**
+ * Enumerates build configurations.
+ * NOTE need to stay in sync with EBuildConfigurations::Type
+ */
+UENUM()
+enum class ELocalWorkflowConfig : uint8
+{
+	/** Unknown build configuration. */
+	Unknown UMETA(Hidden),
+
+	/** Debug build. */
+	Debug UMETA(Hidden),
+
+	/** DebugGame build. */
+	DebugGame,
+
+	/** Development build. */
+	Development,
+
+	/** Shipping build. */
+	Shipping,
+
+	/** Test build. */
+	Test 
+};
+
 UCLASS(config = SpatialGDKEditorSettings, defaultconfig)
 class SPATIALGDKEDITOR_API USpatialGDKEditorSettings : public UObject
 {
@@ -252,6 +278,14 @@ public:
 	/** If checked, show the Spatial service button on the GDK toolbar which can be used to turn the Spatial service on and off. */
 	UPROPERTY(EditAnywhere, config, Category = "General", meta = (DisplayName = "Show Spatial service button"))
 	bool bShowSpatialServiceButton;
+
+	/** If checked, show the Snapshot button on the GDK toolbar which can be used to generate a snapshot. */
+	UPROPERTY(EditAnywhere, config, Category = "General", meta = (ConfigRestartRequired = false, DisplayName = "Show Create Snapshot button"))
+	bool bShowCreateSpatialSnapshot;
+
+	/** If checked, show the Deploy button on the GDK toolbar which can be used to access the launch cloud deployment dialog. */
+	UPROPERTY(EditAnywhere, config, Category = "General", meta = (ConfigRestartRequired = false, DisplayName = "Show Open Deployment Dialog button"))
+	bool bShowDeploymentDialog;
 
 	/** Select to delete all a server-worker instance’s dynamically-spawned entities when the server-worker instance shuts down. If NOT selected, a new server-worker instance has all of these entities from the former server-worker instance’s session. */
 	UPROPERTY(EditAnywhere, config, Category = "Play in editor settings", meta = (DisplayName = "Delete dynamically spawned entities"))
@@ -382,6 +416,36 @@ public:
 	/** If you have selected **Auto-generate launch configuration file**, you can change the default options in the file from the drop-down menu. */
 	UPROPERTY(EditAnywhere, config, Category = "Launch", meta = (EditCondition = "bGenerateDefaultLaunchConfig", DisplayName = "Launch configuration file options"))
 	FSpatialLaunchConfigDescription LaunchConfigDesc;
+
+	// CORVUS_BEGIN
+
+	/** Cook also build (compile) the the Dedicated Server & Networked Client executables. Useful for programmers. */
+	UPROPERTY(EditAnywhere, config, Category = "Local Workflow", meta = (ConfigRestartRequired = false, DisplayName = "Cook Build Executables"))
+	bool bLocalWorkflowCookBuild;
+
+	/** Additional command line flags passed in to BuildCookRun for Local Workflow (eg -iterativecooking -pak -compressed etc.). */
+	UPROPERTY(EditAnywhere, config, Category = "Local Workflow", meta = (ConfigRestartRequired = false, DisplayName = "Command line flags for Cook"))
+	FString LocalWorkflowCookCommandLineFlags;
+
+	/** Additional command line flags passed in to the Dedicated Server in Local Workflow (eg "-log -NoVerifyGC"). */
+	UPROPERTY(EditAnywhere, config, Category = "Local Workflow", meta = (ConfigRestartRequired = false, DisplayName = "Command line flags for Dedicated Server"))
+	FString LocalWorkflowServerCommandLineFlags;
+
+	/** Additional command line flags passed in to the Networked Client in Local Workflow -eg "-log -windowed -ResX=960 -ResY=540"). */
+	UPROPERTY(EditAnywhere, config, Category = "Local Workflow", meta = (ConfigRestartRequired = false, DisplayName = "Command line flags for Networked Client"))
+	FString LocalWorkflowClientCommandLineFlags;
+
+	/** IP Address of the Dedicated Server in Local Workflow. Only needed to connect from a remote computer. By default 127.0.0.1 */
+	UPROPERTY(EditAnywhere, config, Category = "Local Workflow", meta = (ConfigRestartRequired = false, DisplayName = "IP Address Dedicated Server"))
+	FString LocalWorkflowServerIpAddr;
+
+	UPROPERTY(EditAnywhere, config, Category = "Local Workflow", meta = (ConfigRestartRequired = false, DisplayName = "Build Configuration of the Client"))
+	ELocalWorkflowConfig LocalWorkflowClientConfiguration = ELocalWorkflowConfig::Development;
+
+	UPROPERTY(EditAnywhere, config, Category = "Local Workflow", meta = (ConfigRestartRequired = false, DisplayName = "Build Configuration of the Server"))
+	ELocalWorkflowConfig LocalWorkflowServerConfiguration = ELocalWorkflowConfig::Development;
+
+	// CORVUS_END
 
 	FORCEINLINE FString GetSpatialOSLaunchConfig() const
 	{
