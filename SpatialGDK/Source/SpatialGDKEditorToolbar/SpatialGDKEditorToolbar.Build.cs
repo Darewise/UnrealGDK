@@ -29,7 +29,11 @@ public class SpatialGDKEditorToolbar : ModuleRules
                 "SpatialGDK",
                 "SpatialGDKEditor",
                 "SpatialGDKServices",
-                "UnrealEd"
+                "UnrealEd",
+
+                // CORVUS_BEGIN
+                "DWCommon",
+                "DWUnrealEditor",
             }
         );
     }
