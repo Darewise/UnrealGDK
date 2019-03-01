@@ -559,8 +559,8 @@ bool FSpatialGDKEditorToolbarModule::GenerateDefaultLaunchConfig(const FString& 
 		Writer->WriteValue(TEXT("template"), TEXT("small")); // Template section
 		Writer->WriteObjectStart(TEXT("world")); // World section begin
 			Writer->WriteObjectStart(TEXT("dimensions"));
-				Writer->WriteValue(TEXT("x_meters"), 2000);
-				Writer->WriteValue(TEXT("z_meters"), 2000);
+				Writer->WriteValue(TEXT("x_meters"), 20000);
+				Writer->WriteValue(TEXT("z_meters"), 20000);
 			Writer->WriteObjectEnd();
 			Writer->WriteValue(TEXT("chunk_edge_length_meters"), 50);
 			Writer->WriteValue(TEXT("streaming_query_interval"), 4);
