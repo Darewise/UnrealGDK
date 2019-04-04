@@ -227,10 +227,9 @@ void FSpatialGDKEditorToolbarModule::AddToolbarExtension(FToolBarBuilder& Builde
 	Builder.AddComboButton(
 		FUIAction(),
 		FOnGetContent::CreateRaw(this, &FSpatialGDKEditorToolbarModule::GenerateComboMenu),
-		LOCTEXT("LocalWorkflow", "Local Workflow"),
+		LOCTEXT("LocalWorkflow_Short", "Local"),
 		LOCTEXT("LocalWorkflow_ToolTip", "Local Workflow menu"),
-		FSlateIcon(),
-		true
+		FSlateIcon(FEditorStyle::GetStyleSetName(), "PlayWorld.Simulate")
 	);
 	// CORVUS_END
 }
