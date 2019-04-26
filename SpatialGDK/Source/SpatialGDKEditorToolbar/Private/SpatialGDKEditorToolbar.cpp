@@ -752,8 +752,8 @@ void FSpatialGDKEditorToolbarModule::LaunchDedicatedServer()
 
 	// Launch the real dedicated server executable
 	const FString cmdArgument = FString::Printf(
-		TEXT("%s +appName corvus +projectName corvus +workerType UnrealWorker +receptionistHost %s +useExternalIpForBridge true -log -nopauseonsuccess -NoVerifyGC"),
-		*CurrentLevelName, *host);
+		TEXT("%s +appName corvus +projectName corvus_+deploymentName corvus_local_workflow_%s +workerType UnrealWorker +receptionistHost %s +useExternalIpForBridge true -log -nopauseonsuccess -NoVerifyGC"),
+		*CurrentLevelName, *FGenericPlatformMisc::GetDeviceId(), *host);
 
 	ServerProcessHandle = UnrealUtils::LaunchProcess(serverPath, cmdArgument, workingDir);
 
@@ -801,8 +801,8 @@ void FSpatialGDKEditorToolbarModule::LaunchNetworkedClient()
 	static const FString ServerIpAddr = UnrealUtils::GetHostAddr();;
 
 	const FString cmdArgument = FString::Printf(
-		TEXT("%s +appName corvus +projectName corvus +workerType UnrealClient +useExternalIpForBridge true -log -NoVerifyGC -windowed -ResX=960 -ResY=540"),
-		*ServerIpAddr);
+		TEXT("%s +appName corvus +projectName corvus +deploymentName corvus_local_workflow_%s +workerType UnrealClient +useExternalIpForBridge true -log -NoVerifyGC -windowed -ResX=960 -ResY=540"),
+		*ServerIpAddr, *FGenericPlatformMisc::GetDeviceId());
 
 	FProcHandle clientProcessHandle = UnrealUtils::LaunchProcess(clientPath, cmdArgument, workingDir);
 
