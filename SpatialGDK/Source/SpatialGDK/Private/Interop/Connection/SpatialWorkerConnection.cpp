@@ -216,6 +216,19 @@ void USpatialWorkerConnection::ConnectToReceptionist(bool bConnectAsClient)
 	ConnectionParams.network.use_external_ip = ReceptionistConfig.UseExternalIp;
 	ConnectionParams.network.tcp.multiplex_level = ReceptionistConfig.TcpMultiplexLevel;
 
+	// CORVUS_BEGIN
+	if (FPlatformMisc::IsDebuggerPresent())
+	{
+		ConnectionParams.network.kcp.heartbeat.interval_millis = 60000; // 1 min
+		ConnectionParams.network.kcp.heartbeat.timeout_millis = 600000; // 10 min
+	}
+	else
+	{
+		ConnectionParams.network.kcp.heartbeat.interval_millis = 2000; // 2s
+		ConnectionParams.network.kcp.heartbeat.timeout_millis = 10000; // 10s
+	}
+	// CORVUS_END
+
 	ConnectionParams.enable_dynamic_components = true;
 	// end TODO
 
@@ -262,6 +275,19 @@ void USpatialWorkerConnection::ConnectToLocator()
 	ConnectionParams.network.connection_type = LocatorConfig.LinkProtocol;
 	ConnectionParams.network.use_external_ip = LocatorConfig.UseExternalIp;
 	ConnectionParams.network.tcp.multiplex_level = LocatorConfig.TcpMultiplexLevel;
+
+	// CORVUS_BEGIN
+	if (FPlatformMisc::IsDebuggerPresent())
+	{
+		ConnectionParams.network.kcp.heartbeat.interval_millis = 60000; // 1 min
+		ConnectionParams.network.kcp.heartbeat.timeout_millis = 600000; // 10 min
+	}
+	else
+	{
+		ConnectionParams.network.kcp.heartbeat.interval_millis = 2000; // 2s
+		ConnectionParams.network.kcp.heartbeat.timeout_millis = 10000; // 10s
+	}
+	// CORVUS_END
 
 	FString ProtocolLogDir = FPaths::ConvertRelativePathToFull(FPaths::ProjectLogDir()) + TEXT("protocol-log-");
 	ConnectionParams.protocol_logging.log_prefix = TCHAR_TO_UTF8(*ProtocolLogDir);
