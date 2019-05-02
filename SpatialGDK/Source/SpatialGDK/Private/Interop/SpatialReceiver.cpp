@@ -1109,11 +1109,14 @@ void USpatialReceiver::ApplyRPC(UObject* TargetObject, UFunction* Function, TArr
 	FSpatialNetBitReader PayloadReader(PackageMap, PayloadData.GetData(), CountBits, UnresolvedRefs);
 
 #if !UE_BUILD_SHIPPING
-	int ReliableRPCId = 0;
+	//CORVUS_BEGIN
+	//Removing this section to enable compatibility between development and shipping builds
+	/*int ReliableRPCId = 0;
 	if (Function->HasAnyFunctionFlags(FUNC_NetReliable) && !Function->HasAnyFunctionFlags(FUNC_NetMulticast))
 	{
 		PayloadReader << ReliableRPCId;
-	}
+	}*/
+	//CORVUS_END
 #endif // !UE_BUILD_SHIPPING
 
 	TSharedPtr<FRepLayout> RepLayout = NetDriver->GetFunctionRepLayout(Function);
@@ -1122,7 +1125,9 @@ void USpatialReceiver::ApplyRPC(UObject* TargetObject, UFunction* Function, TArr
 	if (UnresolvedRefs.Num() == 0)
 	{
 #if !UE_BUILD_SHIPPING
-		if (Function->HasAnyFunctionFlags(FUNC_NetReliable) && !Function->HasAnyFunctionFlags(FUNC_NetMulticast))
+		//CORVUS_BEGIN
+		//Removing this section to enable compatibility between development and shipping builds
+		/*if (Function->HasAnyFunctionFlags(FUNC_NetReliable) && !Function->HasAnyFunctionFlags(FUNC_NetMulticast))
 		{
 			AActor* Actor = Cast<AActor>(TargetObject);
 			if (Actor == nullptr)
@@ -1131,7 +1136,8 @@ void USpatialReceiver::ApplyRPC(UObject* TargetObject, UFunction* Function, TArr
 				check(Actor);
 			}
 			NetDriver->OnReceivedReliableRPC(Actor, FunctionFlagsToRPCSchemaType(Function->FunctionFlags), SenderWorkerId, ReliableRPCId, TargetObject, Function);
-		}
+		}*/
+		//CORVUS_END
 #endif // !UE_BUILD_SHIPPING
 		TargetObject->ProcessEvent(Function, Parms);
 	}
