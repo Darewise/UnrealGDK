@@ -681,10 +681,13 @@ Worker_CommandRequest USpatialSender::CreateRPCCommandRequest(UObject* TargetObj
 	FSpatialNetBitWriter PayloadWriter(PackageMap, UnresolvedObjects);
 
 #if !UE_BUILD_SHIPPING
-	if (Function->HasAnyFunctionFlags(FUNC_NetReliable) && !Function->HasAnyFunctionFlags(FUNC_NetMulticast))
+	//CORVUS_BEGIN
+	//Removing this section to enable compatibility between development and shipping builds
+	/*if (Function->HasAnyFunctionFlags(FUNC_NetReliable) && !Function->HasAnyFunctionFlags(FUNC_NetMulticast))
 	{
 		PayloadWriter << ReliableRPCId;
-	}
+	}*/
+	//CORVUS_END
 #endif // !UE_BUILD_SHIPPING
 
 	TSharedPtr<FRepLayout> RepLayout = NetDriver->GetFunctionRepLayout(Function);
