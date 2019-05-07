@@ -339,8 +339,6 @@ FString GenerateIntermediateDirectory()
 
 void SaveSchemaDatabaseInGameThread()
 {
-	UE_LOG(LogSpatialGDKSchemaGenerator, Display, TEXT("SaveSchemaDatabase: AsyncTask..."));
-
 	{
 		FString PackagePath = TEXT("/Game/Spatial/SchemaDatabase");
 		UPackage *Package = CreatePackage(nullptr, *PackagePath);
@@ -368,7 +366,6 @@ void SaveSchemaDatabaseInGameThread()
 		FPaths::MakePlatformFilename(FullPath);
 		if (bSuccess)
 		{
-			UE_LOG(LogSpatialGDKSchemaGenerator, Display, TEXT("SaveSchemaDatabase: successfully saved Schema Database to '%s'"), *FullPath);
 			UE_LOG(LogSpatialGDKSchemaGenerator, Log, TEXT("SaveSchemaDatabase: NextAvailableComponentId=%d"), SchemaDatabase->NextAvailableComponentId);
 			UE_LOG(LogSpatialGDKSchemaGenerator, Log, TEXT("SaveSchemaDatabase: FirstSublevelComponentId=%d"), SchemaDatabase->FirstSublevelComponentId);
 			UE_LOG(LogSpatialGDKSchemaGenerator, Log, TEXT("SaveSchemaDatabase: LastSublevelComponentId=%d"), SchemaDatabase->LastSublevelComponentId);
@@ -384,6 +381,8 @@ void SaveSchemaDatabaseInGameThread()
 			{
 				UE_LOG(LogSpatialGDKSchemaGenerator, Log, TEXT(" - %s"), *LevelToLevelData.Key);
 			}
+
+			UE_LOG(LogSpatialGDKSchemaGenerator, Display, TEXT("SaveSchemaDatabase: successfully saved Schema Database to '%s'"), *FullPath);
 		}
 		else
 		{
@@ -396,10 +395,12 @@ void SaveSchemaDatabase()
 {
 	if (IsInGameThread())
 	{
+		UE_LOG(LogSpatialGDKSchemaGenerator, Display, TEXT("SaveSchemaDatabase IsInGameThread"));
 		SaveSchemaDatabaseInGameThread();
 	}
 	else
 	{
+		UE_LOG(LogSpatialGDKSchemaGenerator, Display, TEXT("SaveSchemaDatabase AsyncTask..."));
 		AsyncTask(ENamedThreads::GameThread, SaveSchemaDatabaseInGameThread);
 	}
 }
@@ -583,6 +584,8 @@ void PreProcessSchemaMap()
 			// Skip over level blueprints since we can't load them.
 			if (AssetData.AssetClass.IsEqual(FName(TEXT("World"))))
 			{
+				UE_LOG(LogSpatialGDKSchemaGenerator, Warning, TEXT("PreProcessSchemaMap: Skip over level blueprints since we can't load them: %s"), *ClassPath);
+
 				continue;
 			}
 		}
