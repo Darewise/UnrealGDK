@@ -240,6 +240,8 @@ bool ValidateIdentifierNames(TArray<TSharedPtr<FUnrealType>>& TypeInfos)
 
 void GenerateSchemaFromClasses(const TArray<TSharedPtr<FUnrealType>>& TypeInfos, const FString& CombinedSchemaPath)
 {
+	UE_LOG(LogSpatialGDKSchemaGenerator, Display, TEXT("GenerateSchemaFromClasses"));
+
 	// Generate the actual schema.
 	for (const auto& TypeInfo : TypeInfos)
 	{
@@ -250,6 +252,8 @@ void GenerateSchemaFromClasses(const TArray<TSharedPtr<FUnrealType>>& TypeInfos,
 FLevelData GenerateSchemaForSublevel(UWorld* World)
 {
 	FLevelData LevelData;
+
+	UE_LOG(LogSpatialGDKSchemaGenerator, Log, TEXT("GenerateSchemaForSublevel(%s)"), *World->GetName());
 
 	if (UWorldComposition* WorldComposition = World->WorldComposition)
 	{
@@ -275,6 +279,8 @@ FLevelData GenerateSchemaForSublevel(UWorld* World)
 
 void GenerateSchemaForSublevels(const FString& SchemaPath)
 {
+	UE_LOG(LogSpatialGDKSchemaGenerator, Display, TEXT("GenerateSchemaForSublevels"));
+
 	UWorld* EditorWorld = GEditor->GetEditorWorldContext().World();
 
 	FLevelData LevelData = GenerateSchemaForSublevel(EditorWorld);
@@ -333,6 +339,8 @@ FString GenerateIntermediateDirectory()
 
 void SaveSchemaDatabase()
 {
+	UE_LOG(LogSpatialGDKSchemaGenerator, Display, TEXT("SaveSchemaDatabase: AsyncTask..."));
+
 	AsyncTask(ENamedThreads::GameThread, []{
 		FString PackagePath = TEXT("/Game/Spatial/SchemaDatabase");
 		UPackage *Package = CreatePackage(nullptr, *PackagePath);
@@ -356,10 +364,29 @@ void SaveSchemaDatabase()
 		FString FilePath = FString::Printf(TEXT("%s%s"), *PackagePath, *FPackageName::GetAssetPackageExtension());
 		bool bSuccess = UPackage::SavePackage(Package, SchemaDatabase, EObjectFlags::RF_Public | EObjectFlags::RF_Standalone, *FPackageName::LongPackageNameToFilename(PackagePath, FPackageName::GetAssetPackageExtension()));
 
-		if (!bSuccess)
+		FString FullPath = FPaths::ConvertRelativePathToFull(FilePath);
+		FPaths::MakePlatformFilename(FullPath);
+		if (bSuccess)
 		{
-			FString FullPath = FPaths::ConvertRelativePathToFull(FilePath);
-			FPaths::MakePlatformFilename(FullPath);
+			UE_LOG(LogSpatialGDKSchemaGenerator, Display, TEXT("SaveSchemaDatabase: successfully saved Schema Database to '%s'"), *FullPath);
+			UE_LOG(LogSpatialGDKSchemaGenerator, Log, TEXT("SaveSchemaDatabase: NextAvailableComponentId=%d"), SchemaDatabase->NextAvailableComponentId);
+			UE_LOG(LogSpatialGDKSchemaGenerator, Log, TEXT("SaveSchemaDatabase: FirstSublevelComponentId=%d"), SchemaDatabase->FirstSublevelComponentId);
+			UE_LOG(LogSpatialGDKSchemaGenerator, Log, TEXT("SaveSchemaDatabase: LastSublevelComponentId=%d"), SchemaDatabase->LastSublevelComponentId);
+
+			UE_LOG(LogSpatialGDKSchemaGenerator, Log, TEXT("SaveSchemaDatabase: ClassPathToSchema:"));
+			for (const auto& ClassToSchema : SchemaDatabase->ClassPathToSchema)
+			{
+				UE_LOG(LogSpatialGDKSchemaGenerator, Log, TEXT(" - %s"), *ClassToSchema.Key);
+			}
+
+			UE_LOG(LogSpatialGDKSchemaGenerator, Log, TEXT("SaveSchemaDatabase: LevelPathToLevelData:"));
+			for (const auto& LevelToLevelData : SchemaDatabase->LevelPathToLevelData)
+			{
+				UE_LOG(LogSpatialGDKSchemaGenerator, Log, TEXT(" - %s"), *LevelToLevelData.Key);
+			}
+		}
+		else
+		{
 			FMessageDialog::Debugf(FText::FromString(FString::Printf(TEXT("Unable to save Schema Database to '%s'! Please make sure the file is writeable."), *FullPath)));
 		}
 	});
@@ -431,7 +458,11 @@ void DeleteGeneratedSchemaFiles()
 	IPlatformFile& PlatformFile = FPlatformFileManager::Get().GetPlatformFile();
 	if (PlatformFile.DirectoryExists(*SchemaOutputPath))
 	{
-		if (!PlatformFile.DeleteDirectoryRecursively(*SchemaOutputPath))
+		if (PlatformFile.DeleteDirectoryRecursively(*SchemaOutputPath))
+		{
+			UE_LOG(LogSpatialGDKSchemaGenerator, Log, TEXT("Cleaned the generated schema directory '%s'."), *SchemaOutputPath);
+		}
+		else
 		{
 			UE_LOG(LogSpatialGDKSchemaGenerator, Error, TEXT("Could not clean the generated schema directory '%s'! Please make sure the directory and the files inside are writeable."), *SchemaOutputPath);
 		}
@@ -456,6 +487,10 @@ void TryLoadExistingSchemaDatabase()
 			UE_LOG(LogSpatialGDKSchemaGenerator, Warning, TEXT("Detected an old schema database, it'll be reset."));
 			ClassPathToSchema.Empty();
 			DeleteGeneratedSchemaFiles();
+		}
+		else
+		{
+			UE_LOG(LogSpatialGDKSchemaGenerator, Log, TEXT("SchemaDatabase loaded: NextAvailableComponentId=%d"), NextAvailableComponentId);
 		}
 	}
 	else
@@ -492,6 +527,8 @@ bool TryLoadClassForSchemaGeneration(FString ClassPath)
 
 void LoadDefaultGameModes()
 {
+	UE_LOG(LogSpatialGDKSchemaGenerator, Log, TEXT("LoadDefaultGameModes"));
+
 	TArray<FString> GameModesToLoad{ TEXT("GlobalDefaultGameMode"), TEXT("GlobalDefaultServerGameMode") };
 
 	for (FString GameMode : GameModesToLoad)
@@ -514,6 +551,8 @@ void LoadDefaultGameModes()
 
 void PreProcessSchemaMap()
 {
+	UE_LOG(LogSpatialGDKSchemaGenerator, Log, TEXT("PreProcessSchemaMap"));
+
 	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
 
 	TArray<FString> EntriesToRemove;
@@ -541,6 +580,8 @@ void PreProcessSchemaMap()
 		// If the class isn't loaded then mark the entry for removal from the map.
 		if(!ClassExists)
 		{
+			UE_LOG(LogSpatialGDKSchemaGenerator, Log, TEXT("PreProcessSchemaMap: Class not loaded: %s"), *ClassPath);
+
 			EntriesToRemove.Add(ClassPath);
 		}
 	}
