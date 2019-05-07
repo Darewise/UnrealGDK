@@ -356,10 +356,31 @@ void SaveSchemaDatabase()
 	FString FilePath = FString::Printf(TEXT("%s%s"), *PackagePath, *FPackageName::GetAssetPackageExtension());
 	bool bSuccess = UPackage::SavePackage(Package, SchemaDatabase, EObjectFlags::RF_Public | EObjectFlags::RF_Standalone, *FPackageName::LongPackageNameToFilename(PackagePath, FPackageName::GetAssetPackageExtension()));
 
-	if (!bSuccess)
+	FString FullPath = FPaths::ConvertRelativePathToFull(FilePath);
+	FPaths::MakePlatformFilename(FullPath);
+	if (bSuccess)
 	{
-		FString FullPath = FPaths::ConvertRelativePathToFull(FilePath);
-		FPaths::MakePlatformFilename(FullPath);
+		UE_LOG(LogSpatialGDKSchemaGenerator, Log, TEXT("SaveSchemaDatabase: NextAvailableComponentId=%d"), SchemaDatabase->NextAvailableComponentId);
+		// TODO NOSUBMIT UE_LOG(LogSpatialGDKSchemaGenerator, Log, TEXT("SaveSchemaDatabase: FirstSublevelComponentId=%d"), SchemaDatabase->FirstSublevelComponentId);
+		// TODO NOSUBMIT UE_LOG(LogSpatialGDKSchemaGenerator, Log, TEXT("SaveSchemaDatabase: LastSublevelComponentId=%d"), SchemaDatabase->LastSublevelComponentId);
+
+		UE_LOG(LogSpatialGDKSchemaGenerator, Log, TEXT("SaveSchemaDatabase: ClassPathToSchema:"));
+		for (const auto& ClassToSchema : SchemaDatabase->ClassPathToSchema)
+		{
+			UE_LOG(LogSpatialGDKSchemaGenerator, Log, TEXT(" - %s"), *ClassToSchema.Key);
+		}
+		/* TODO NOSUBMIT
+		UE_LOG(LogSpatialGDKSchemaGenerator, Log, TEXT("SaveSchemaDatabase: LevelPathToLevelData:"));
+		for (const auto& LevelToLevelData : SchemaDatabase->LevelPathToLevelData)
+		{
+			UE_LOG(LogSpatialGDKSchemaGenerator, Log, TEXT(" - %s"), *LevelToLevelData.Key);
+		}
+		*/
+
+		UE_LOG(LogSpatialGDKSchemaGenerator, Display, TEXT("SaveSchemaDatabase: successfully saved Schema Database to '%s'"), *FullPath);
+	}
+	else
+	{
 		FMessageDialog::Debugf(FText::FromString(FString::Printf(TEXT("Unable to save Schema Database to '%s'! Please make sure the file is writeable."), *FullPath)));
 	}
 }
