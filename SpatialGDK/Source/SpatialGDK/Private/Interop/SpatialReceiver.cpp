@@ -390,6 +390,25 @@ void USpatialReceiver::ReceiveActor(Worker_EntityId EntityId)
 			// a stably named actor could not be found
 			// the Actor is a singleton
 			// the class couldn't be loaded
+
+			if (GlobalStateManager != nullptr && GlobalStateManager->IsSingletonEntity(EntityId))
+			{
+				// We've attempted to link against a singleton entity we haven't attempted to replicate yet
+				if (USpatialActorChannel* Channel = GlobalStateManager->FindSingletonActorChannel(EntityId))
+				{
+					for (PendingAddComponentWrapper& PendingAddComponent : PendingAddComponents)
+					{
+						// Apply component state, regardless of authority. This is to allow server-workers to
+						// resume Singleton Actor simulation correctly.
+						if (PendingAddComponent.EntityId == EntityId)
+						{
+							UE_LOG(LogSpatialReceiver, Log, TEXT("ReceiveActor: ApplyComponentData on entity %lld."), EntityId);
+							ApplyComponentData(EntityId, *PendingAddComponent.Data->ComponentData, Channel);
+						}
+					}
+				}
+			}
+
 			return;
 		}
 
