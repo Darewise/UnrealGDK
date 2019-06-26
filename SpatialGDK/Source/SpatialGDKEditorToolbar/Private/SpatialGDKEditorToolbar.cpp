@@ -555,7 +555,7 @@ bool FSpatialGDKEditorToolbarModule::GenerateDefaultLaunchConfig(const FString& 
 
 	// Populate json file for launch config
 	Writer->WriteObjectStart(); // Start of json
-		Writer->WriteValue(TEXT("template"), TEXT("small")); // Template section
+		Writer->WriteValue(TEXT("template"), TEXT("w2_r0500_e5")); // Template section
 		Writer->WriteObjectStart(TEXT("world")); // World section begin
 			Writer->WriteObjectStart(TEXT("dimensions"));
 				Writer->WriteValue(TEXT("x_meters"), 20000);
