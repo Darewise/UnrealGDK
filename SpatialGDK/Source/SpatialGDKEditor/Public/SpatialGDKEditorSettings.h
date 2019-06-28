@@ -65,6 +65,22 @@ private:
 
 public:
 
+	// CORVUS_BEGIN
+
+	/** Additional command line flags passed in to the Dedicated Server in Local Workflow. */
+	UPROPERTY(EditAnywhere, config, Category = "Local Workflow", meta = (ConfigRestartRequired = false, DisplayName = "Command line flags for Dedicated Server"))
+	FString LocalWorflowServerCommandLineFlags;
+
+	/** Additional command line flags passed in to the Networked Client in Local Workflow. By default "-windowed -ResX=960 -ResY=540". */
+	UPROPERTY(EditAnywhere, config, Category = "Local Workflow", meta = (ConfigRestartRequired = false, DisplayName = "Command line flags for Networked Client"))
+	FString LocalWorflowClientCommandLineFlags;
+
+	/** IP Address of the Dedicated Server in Local Workflow. Only needed to connect from a remote computer. By default 127.0.0.1 */
+	UPROPERTY(EditAnywhere, config, Category = "Local Workflow", meta = (ConfigRestartRequired = false, DisplayName = "IP Address Dedicated Server"))
+	FString LocalWorflowServerIpAddr;
+
+	// CORVUS_END
+
 	/** If checked, placeholder entities will be added to the snapshot on generation */
 	UPROPERTY(EditAnywhere, config, Category = "Snapshots", meta = (ConfigRestartRequired = false, DisplayName = "Generate placeholder entities in snapshot"))
 	bool bGeneratePlaceholderEntitiesInSnapshot;

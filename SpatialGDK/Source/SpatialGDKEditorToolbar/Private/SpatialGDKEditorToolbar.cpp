@@ -260,7 +260,6 @@ TSharedRef<SWidget> FSpatialGDKEditorToolbarModule::GenerateComboMenu()
 				FCanExecuteAction::CreateRaw(this, &FSpatialGDKEditorToolbarModule::CanCookMap)
 			)
 		);
-		// TODO: change icon if using server with rendering
 		MenuBuilder.AddMenuEntry(
 			LOCTEXT("LaunchDedicatedServer", "Launch Dedicated Server"),
 			TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateRaw(this, &FSpatialGDKEditorToolbarModule::LaunchDedicatedServerTooltip)),
@@ -270,22 +269,7 @@ TSharedRef<SWidget> FSpatialGDKEditorToolbarModule::GenerateComboMenu()
 				FCanExecuteAction::CreateRaw(this, &FSpatialGDKEditorToolbarModule::CanLaunchDedicatedServer)
 			)
 		);
-		/* TODO: option to Launch a fake Server with rendering (Game client with the -server option) Not working with the GDK!
-		MenuBuilder.AddMenuEntry(
-			LOCTEXT("ServerWithRendering", "With rendering"),
-			LOCTEXT("ServerWithRendering_Tooltip", "Launch a networked client as a server.\nThis enable rendering but don't test the real server."),
-			FSlateIcon(),
-			FUIAction(
-				FExecuteAction::CreateRaw(this, &FSpatialGDKEditorToolbarModule::ToggleServerWithRendering),
-				FCanExecuteAction::CreateRaw(this, &FSpatialGDKEditorToolbarModule::CanLaunchDedicatedServer),
-				FIsActionChecked::CreateRaw(this, &FSpatialGDKEditorToolbarModule::IsServerWithRendering)
-			),
-			NAME_None,	// Extension point
-			EUserInterfaceActionType::ToggleButton
-		);
-		*/
 
-		// TODO: add parameter to specify IP Addr of a remote server
 		MenuBuilder.AddMenuEntry(
 			LOCTEXT("LaunchNetworkedClient", "Launch Networked Client"),
 			TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateRaw(this, &FSpatialGDKEditorToolbarModule::LaunchNetworkedClientTooltip)),
@@ -734,26 +718,14 @@ void FSpatialGDKEditorToolbarModule::LaunchDedicatedServer()
 {
 	static const FString workingDir = FPaths::ConvertRelativePathToFull(FPaths::ProjectDir());
 	static const FString serverPath = workingDir / TEXT("Binaries/Win64/CorvusServer.exe");
-	const FString host = UnrealUtils::GetHostAddr();
 	const FString CurrentLevelName = UGameplayStatics::GetCurrentLevelName(GEditor->GetEditorWorldContext().World());
-
-	/* TODO: Server With Rendering is in fact using the Game Client with the -server option Not working with the GDK!
-	https://improbableio.atlassian.net/servicedesk/customer/portal/5/GCS-1052
-	if (bServerWithRendering)
-	{
-		static const FString clientPath = workingDir / TEXT("Binaries/Win64/Corvus.exe");
-		const FString cmdArgument = FString::Printf(
-			TEXT("%s -server +appName corvus +projectName corvus +workerType UnrealWorker +receptionistHost %s +useExternalIpForBridge true -log -nopauseonsuccess -NoVerifyGC -Windowed"),
-			*CurrentLevelName, *host);
-
-		ServerProcessHandle = UnrealUtils::LaunchProcess(clientPath, cmdArgument, workingDir);
-	}
-	*/
+	const USpatialGDKEditorSettings* Settings = GetDefault<USpatialGDKEditorSettings>();
+	const FString CommandLineFlags = Settings->LocalWorflowServerCommandLineFlags;
 
 	// Launch the real dedicated server executable
 	const FString cmdArgument = FString::Printf(
-		TEXT("%s +appName corvus +projectName corvus_+deploymentName corvus_local_workflow_%s +workerType UnrealWorker +receptionistHost %s +useExternalIpForBridge true -messaging -SessionName=\"Local Workflow UnrealWorker Server\" -log -nopauseonsuccess -NoVerifyGC"),
-		*CurrentLevelName, *FGenericPlatformMisc::GetDeviceId(), *host);
+		TEXT("%s +appName corvus +projectName corvus_+deploymentName corvus_local_workflow_%s +workerType UnrealWorker -messaging -SessionName=\"Local Workflow UnrealWorker Server\" -log -nopauseonsuccess -NoVerifyGC %s"),
+		*CurrentLevelName, *FGenericPlatformMisc::GetDeviceId(), *CommandLineFlags);
 
 	ServerProcessHandle = UnrealUtils::LaunchProcess(serverPath, cmdArgument, workingDir);
 
@@ -797,13 +769,13 @@ void FSpatialGDKEditorToolbarModule::LaunchNetworkedClient()
 {
 	static const FString workingDir = FPaths::ConvertRelativePathToFull(FPaths::ProjectDir());
 	static const FString clientPath = workingDir / TEXT("Binaries/Win64/Corvus.exe");
-	// TODO: add parameter to launch client on a remote server
-	static const FString ServerIpAddr = UnrealUtils::GetHostAddr();;
+	const USpatialGDKEditorSettings* Settings = GetDefault<USpatialGDKEditorSettings>();
+	const FString ServerIpAddr = Settings->LocalWorflowServerIpAddr.IsEmpty() ? TEXT("127.0.0.1") : Settings->LocalWorflowServerIpAddr;
+	const FString CommandLineFlags = Settings->LocalWorflowClientCommandLineFlags;
 
-	// TODO: make -windowed argument optional
 	const FString cmdArgument = FString::Printf(
-		TEXT("%s +appName corvus +projectName corvus +deploymentName corvus_local_workflow_%s +workerType UnrealClient +useExternalIpForBridge true -messaging -SessionName=\"Local Workflow UnrealClient\" -log -NoVerifyGC -windowed -ResX=960 -ResY=540"),
-		*ServerIpAddr, *FGenericPlatformMisc::GetDeviceId());
+		TEXT("%s +appName corvus +projectName corvus +deploymentName corvus_local_workflow_%s +workerType UnrealClient -messaging -SessionName=\"Local Workflow UnrealClient\" -log -NoVerifyGC %s"),
+		*ServerIpAddr, *FGenericPlatformMisc::GetDeviceId(), *CommandLineFlags);
 
 	FProcHandle clientProcessHandle = UnrealUtils::LaunchProcess(clientPath, cmdArgument, workingDir);
 
