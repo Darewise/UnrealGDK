@@ -19,4 +19,7 @@ public:
 
 protected:
 	virtual bool HandleOptions(const TArray<FString>& Switches);
+
+private:
+	TArray<FString> GetAllMapPaths(FString InMapsPath);
 };
