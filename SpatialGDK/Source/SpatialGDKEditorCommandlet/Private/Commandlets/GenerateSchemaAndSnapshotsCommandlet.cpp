@@ -179,6 +179,7 @@ bool UGenerateSchemaAndSnapshotsCommandlet::GenerateSnapshotForMap(FSpatialGDKEd
 	{
 		FLatentActionInfo LatentInfo;
 		UGameplayStatics::LoadStreamLevel(GWorld, StreamingLevel->GetWorldAssetPackageFName(), false, true, LatentInfo);
+		UE_LOG(LogSpatialGDKEditorCommandlet, Log, TEXT("LoadStreamLevel(%s)"), *StreamingLevel->GetWorldAssetPackageFName().ToString());
 	}
 
 	// Ensure all world composition tiles are also loaded
@@ -190,6 +191,7 @@ bool UGenerateSchemaAndSnapshotsCommandlet::GenerateSnapshotForMap(FSpatialGDKEd
 		{
 			FLatentActionInfo LatentInfo;
 			UGameplayStatics::LoadStreamLevel(GWorld, StreamingTile->GetWorldAssetPackageFName(), false, true, LatentInfo);
+			UE_LOG(LogSpatialGDKEditorCommandlet, Log, TEXT("LoadStreamLevel(%s)"), *StreamingTile->GetWorldAssetPackageFName().ToString());
 		}
 	}
 
