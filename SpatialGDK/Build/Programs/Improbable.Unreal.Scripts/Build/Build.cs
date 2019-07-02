@@ -110,6 +110,12 @@ gosu $NEW_USER ""${SCRIPT}"" ""$@"" >> ""/improbable/logs/${WORKER_ID}.log"" 2>&
                 {
                     currentDir = currentDir.Parent;
                     unrealEngine = currentDir.GetDirectories().Where(d => d.Name == "Engine" && File.Exists(Path.Combine(d.FullName, @"Build\Build.version"))).Select(d => d.Parent.FullName).FirstOrDefault();
+                    // CORVUS_BEGIN: modified to also look for a "UnrealEngine" root folder instead of the "Engine" sub-folder
+                    if (string.IsNullOrEmpty(unrealEngine))
+                    {
+                        unrealEngine = currentDir.GetDirectories().Where(d => d.Name == "UnrealEngine" && File.Exists(Path.Combine(d.FullName, @"Engine\Build\Build.version"))).Select(d => d.FullName).FirstOrDefault();
+                    }
+                    // CORVUS_END
                 }
             }
 
