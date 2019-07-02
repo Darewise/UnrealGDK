@@ -230,9 +230,13 @@ private:
 	UPROPERTY(EditAnywhere, config, Category = "Snapshots", meta = (ConfigRestartRequired = false, DisplayName = "Snapshot path"))
 	FDirectoryPath SpatialOSSnapshotPath;
 
+	// CORVUS_BEGIN
+
 	/** Name snapshot file like current level. */
 	UPROPERTY(EditAnywhere, config, Category = "Snapshots", meta = (ConfigRestartRequired = false, DisplayName = "Name Snapshots like levels"))
 	bool bSnapshotUseCurrentLevelName = true;
+
+	// CORVUS_END
 
 	/** Name of your SpatialOS snapshot file. */
 	UPROPERTY(EditAnywhere, config, Category = "Snapshots", meta = (ConfigRestartRequired = false, DisplayName = "Snapshot file name"))
