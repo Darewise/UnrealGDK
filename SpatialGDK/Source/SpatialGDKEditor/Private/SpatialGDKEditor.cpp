@@ -109,6 +109,11 @@ bool FSpatialGDKEditor::GenerateSchema(bool bFullScan)
 		}
 	}
 
+	// CORVUS_BEGIN from GDK 0.3+
+	// TODO GDK: add a new Project Settings with a list of additional assets to load (like our Root Config Data Asset)
+	LoadDefaultGameModes();
+	// CORVUS_END
+
 	GetMutableDefault<UGeneralProjectSettings>()->bSpatialNetworking = bCachedSpatialNetworking;
 	bSchemaGeneratorRunning = false;
 

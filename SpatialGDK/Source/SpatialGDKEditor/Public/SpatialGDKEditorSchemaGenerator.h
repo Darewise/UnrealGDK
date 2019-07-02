@@ -13,3 +13,7 @@ SPATIALGDKEDITOR_API void ClearGeneratedSchema();
 SPATIALGDKEDITOR_API void DeleteGeneratedSchemaFiles();
 
 SPATIALGDKEDITOR_API bool TryLoadExistingSchemaDatabase();
+
+// CORVUS_BEGIN from GDK 0.3+
+SPATIALGDKEDITOR_API void LoadDefaultGameModes();
+// CORVUS_END
