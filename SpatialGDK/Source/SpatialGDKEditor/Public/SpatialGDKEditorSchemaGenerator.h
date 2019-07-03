@@ -17,3 +17,7 @@ SPATIALGDKEDITOR_API void CopyWellKnownSchemaFiles();
 SPATIALGDKEDITOR_API bool TryLoadExistingSchemaDatabase();
 
 SPATIALGDKEDITOR_API bool GeneratedSchemaFolderExists();
+
+// CORVUS_BEGIN from GDK 0.3+
+SPATIALGDKEDITOR_API void LoadDefaultGameModes();
+// CORVUS_END
