@@ -537,6 +537,8 @@ bool TryLoadClassForSchemaGeneration(FString ClassPath)
 {
 	const FSoftObjectPath ItemToReference(ClassPath);
 
+	UE_LOG(LogSpatialGDKSchemaGenerator, Log, TEXT("TryLoadClassForSchemaGeneration(%s)"), *ClassPath);
+
 	// First check if the object is already loaded into memory.
 	UObject* const ResolvedObject = ItemToReference.ResolveObject();
 	UClass*  const LoadedClass = ResolvedObject ? nullptr : Cast<UClass>(ItemToReference.TryLoad());
