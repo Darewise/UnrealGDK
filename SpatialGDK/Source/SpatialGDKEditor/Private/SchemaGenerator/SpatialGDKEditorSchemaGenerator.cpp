@@ -40,6 +40,9 @@ DEFINE_LOG_CATEGORY(LogSpatialGDKSchemaGenerator);
 #define LOCTEXT_NAMESPACE "SpatialGDKSchemaGenerator"
 
 TArray<UClass*> SchemaGeneratedClasses;
+// CORVUS_BEGIN from GDK 0.3+
+TArray<UClass*> AdditionalSchemaGeneratedClasses; // Used to keep UClasses in memory whilst generating schema for them.
+// CORVUS_END
 TMap<FString, FActorSchemaData> ActorClassPathToSchema;
 TMap<FString, FSubobjectSchemaData> SubobjectClassPathToSchema;
 uint32 NextAvailableComponentId = SpatialConstants::STARTING_GENERATED_COMPONENT_ID;
@@ -699,6 +702,57 @@ void ResolveClassPathToSchemaName(const FString& ClassPath, const FString& Schem
 	AddPotentialNameCollision(SchemaName, ClassPath, SchemaName);
 }
 
+
+// CORVUS_BEGIN from GDK 0.3+
+
+bool TryLoadClassForSchemaGeneration(FString ClassPath)
+{
+	const FSoftObjectPath ItemToReference(ClassPath);
+
+	UE_LOG(LogSpatialGDKSchemaGenerator, Log, TEXT("TryLoadClassForSchemaGeneration(%s)"), *ClassPath);
+
+	// First check if the object is already loaded into memory.
+	UObject* const ResolvedObject = ItemToReference.ResolveObject();
+	UClass*  const LoadedClass = ResolvedObject ? nullptr : Cast<UClass>(ItemToReference.TryLoad());
+
+	// Only store classes that weren't currently loaded into memory.
+	if (LoadedClass)
+	{
+		// Don't allow the Garbage Collector to delete these objects until we are done generating schema.
+		LoadedClass->AddToRoot();
+		AdditionalSchemaGeneratedClasses.Add(LoadedClass);
+	}
+
+	// Return true if the class exists.
+	return ResolvedObject || LoadedClass;
+}
+
+void LoadDefaultGameModes()
+{
+	UE_LOG(LogSpatialGDKSchemaGenerator, Log, TEXT("LoadDefaultGameModes"));
+
+	TArray<FString> GameModesToLoad{ TEXT("GlobalDefaultGameMode"), TEXT("GlobalDefaultServerGameMode") };
+
+	for (FString GameMode : GameModesToLoad)
+	{
+		// Get the GameMode from the DefaultEngine.ini.
+		FString GameModePath;
+		GConfig->GetString(
+			TEXT("/Script/EngineSettings.GameMapsSettings"),
+			*GameMode,
+			GameModePath,
+			GEngineIni
+		);
+
+		if (!GameModePath.IsEmpty())
+		{
+			TryLoadClassForSchemaGeneration(GameModePath);
+		}
+	}
+}
+
+// CORVUS_END
+
 void ResetUsedNames()
 {
 	ClassPathToSchemaName.Empty();
@@ -847,6 +901,21 @@ bool SpatialGDKGenerateSchemaForClasses(TSet<UClass*> Classes, FString SchemaOut
 	GenerateSchemaFromClasses(TypeInfos, SchemaOutputPath, IdGenerator);
 
 	NextAvailableComponentId = IdGenerator.Peek();
+
+// CORVUS_BEGIN from GDK 0.3+
+
+	// Allow the garbage collector to clean up classes that were manually loaded and forced to keep alive for the Schema Generator process.
+	for (const auto& EntryIn : AdditionalSchemaGeneratedClasses)
+	{
+		if (EntryIn)
+		{
+			EntryIn->RemoveFromRoot();
+		}
+	}
+
+	AdditionalSchemaGeneratedClasses.Empty();
+
+// CORVUS_END
 
 	return true;
 }
