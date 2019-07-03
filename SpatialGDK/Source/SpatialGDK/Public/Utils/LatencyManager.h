@@ -18,9 +18,10 @@ public:
 private:
 	void SendPingOrPong(Worker_ComponentId ComponentId);
 
-	Worker_EntityId PlayerControllerEntity;
-	float LastPingSent;
-
+private:
 	const USpatialNetConnection& NetConnection;
 	const USpatialNetDriver& NetDriver;
+
+	Worker_EntityId PlayerControllerEntity;
+	float LastPingSent;
 };
