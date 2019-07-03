@@ -75,6 +75,13 @@ bool FSpatialGDKEditor::GenerateSchema(bool bFullScan)
 			return false;
 		}
 	}
+	else
+	{
+		// CORVUS_BEGIN from GDK 0.3+
+		// TODO GDK: add a new Project Settings with a list of additional assets to load (like our Root Config Data Asset)
+		LoadDefaultGameModes();
+		// CORVUS_END
+	}
 
 	// If running from an open editor then compile all dirty blueprints
 	TArray<UBlueprint*> ErroredBlueprints;
@@ -108,11 +115,6 @@ bool FSpatialGDKEditor::GenerateSchema(bool bFullScan)
 			UE_LOG(LogSpatialGDKEditor, Error, TEXT("%s"), *GetPathNameSafe(Blueprint));
 		}
 	}
-
-	// CORVUS_BEGIN from GDK 0.3+
-	// TODO GDK: add a new Project Settings with a list of additional assets to load (like our Root Config Data Asset)
-	LoadDefaultGameModes();
-	// CORVUS_END
 
 	GetMutableDefault<UGeneralProjectSettings>()->bSpatialNetworking = bCachedSpatialNetworking;
 	bSchemaGeneratorRunning = false;
