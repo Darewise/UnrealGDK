@@ -51,5 +51,9 @@ namespace SpatialGDKEditor
 		SPATIALGDKEDITOR_API void CopyWellKnownSchemaFiles(const FString& GDKSchemaCopyDir, const FString& CoreSDKSchemaCopyDir);
 		
 		SPATIALGDKEDITOR_API bool RunSchemaCompiler();
+
+		// CORVUS_BEGIN from GDK 0.3+
+		SPATIALGDKEDITOR_API void LoadDefaultGameModes();
+		// CORVUS_END
 	}
 }
