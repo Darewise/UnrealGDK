@@ -22,6 +22,7 @@
 
 DECLARE_LOG_CATEGORY_EXTERN(LogSpatialReceiver, Log, All);
 
+class APlayerController;
 class USpatialSender;
 class UGlobalStateManager;
 
@@ -95,6 +96,8 @@ using FIncomingRPCArray = TArray<TSharedPtr<FPendingIncomingRPC>>;
 DECLARE_DELEGATE_OneParam(EntityQueryDelegate, Worker_EntityQueryResponseOp&);
 DECLARE_DELEGATE_OneParam(ReserveEntityIDsDelegate, Worker_ReserveEntityIdsResponseOp&);
 DECLARE_DELEGATE_OneParam(HeartbeatDelegate, Worker_ComponentUpdateOp&);
+DECLARE_DELEGATE_OneParam(ServerPingDelegate, Worker_ComponentUpdateOp&);
+DECLARE_DELEGATE_OneParam(ClientPongDelegate, Worker_ComponentUpdateOp&);
 
 UCLASS()
 class USpatialReceiver : public UObject
@@ -126,6 +129,8 @@ public:
 	void AddReserveEntityIdsDelegate(Worker_RequestId RequestId, ReserveEntityIDsDelegate Delegate);
 
 	void AddHeartbeatDelegate(Worker_EntityId EntityId, HeartbeatDelegate Delegate);
+	void AddServerPingDelegate(Worker_EntityId EntityId, ServerPingDelegate Delegate);
+	void AddClientPongDelegate(Worker_EntityId EntityId, ClientPongDelegate Delegate);
 
 	void OnEntityQueryResponse(Worker_EntityQueryResponseOp& Op);
 
@@ -151,7 +156,7 @@ private:
 
 	void QueryForStartupActor(AActor* Actor, Worker_EntityId EntityId);
 
-	void HandlePlayerLifecycleAuthority(Worker_AuthorityChangeOp& Op, class APlayerController* PlayerController);
+	void HandlePlayerLifecycleAuthority(const Worker_AuthorityChangeOp& Op, const APlayerController* PlayerController);
 	void HandleActorAuthority(Worker_AuthorityChangeOp& Op);
 
 	void ApplyComponentData(Worker_EntityId EntityId, Worker_ComponentData& Data, USpatialActorChannel* Channel);
@@ -221,4 +226,6 @@ private:
 	TMap<Worker_RequestId, ReserveEntityIDsDelegate> ReserveEntityIDsDelegates;
 
 	TMap<Worker_EntityId_Key, HeartbeatDelegate> HeartbeatDelegates;
+	TMap<Worker_EntityId_Key, ServerPingDelegate> ServerPingDelegates;
+	TMap<Worker_EntityId_Key, ClientPongDelegate> ClientPongDelegates;
 };

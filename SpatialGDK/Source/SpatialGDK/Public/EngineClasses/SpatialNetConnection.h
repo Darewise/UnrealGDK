@@ -7,6 +7,7 @@
 #include "Runtime/Launch/Resources/Version.h"
 
 #include "Schema/Interest.h"
+#include "Utils/LatencyManager.h"
 
 #include <WorkerSDK/improbable/c_worker.h>
 
@@ -62,4 +63,9 @@ public:
 	// Player lifecycle
 	Worker_EntityId PlayerControllerEntity;
 	FTimerHandle HeartbeatTimer;
+
+	LatencyManager* ConnectionLatencyManager;
+
+	void SetupLatencyManager(Worker_EntityId InPlayerControllerEntity);
+	void DisableLatencyManager();
 };

@@ -2,17 +2,19 @@
 
 #include "EngineClasses/SpatialNetConnection.h"
 
+#include "Engine/World.h"
 #include "TimerManager.h"
 
 #include "EngineClasses/SpatialNetDriver.h"
 #include "EngineClasses/SpatialPackageMapClient.h"
-#include "Gameframework/PlayerController.h"
 #include "Gameframework/Pawn.h"
+#include "Gameframework/PlayerController.h"
 #include "Interop/Connection/SpatialWorkerConnection.h"
 #include "Interop/SpatialReceiver.h"
 #include "Interop/SpatialSender.h"
 #include "SpatialConstants.h"
 #include "SpatialGDKSettings.h"
+#include "Utils/LatencyManager.h"
 
 #include <WorkerSDK/improbable/c_schema.h>
 
@@ -127,7 +129,7 @@ void USpatialNetConnection::InitHeartbeat(FTimerManager* InTimerManager, Worker_
 
 		// Set up heartbeat event callback
 		TWeakObjectPtr<USpatialNetConnection> ConnectionPtr = this;
-		Cast<USpatialNetDriver>(Driver)->Receiver->AddHeartbeatDelegate(PlayerControllerEntity, HeartbeatDelegate::CreateLambda([ConnectionPtr](Worker_ComponentUpdateOp& Op)
+		Cast<USpatialNetDriver>(Driver)->Receiver->AddHeartbeatDelegate(PlayerControllerEntity, HeartbeatDelegate::CreateLambda([ConnectionPtr](const Worker_ComponentUpdateOp& Op)
 		{
 			if (ConnectionPtr.IsValid())
 			{
@@ -192,4 +194,19 @@ void USpatialNetConnection::DisableHeartbeat()
 void USpatialNetConnection::OnHeartbeat()
 {
 	SetHeartbeatTimeoutTimer();
+}
+
+void USpatialNetConnection::SetupLatencyManager(Worker_EntityId InPlayerControllerEntity)
+{
+	if (ConnectionLatencyManager == nullptr)
+	{
+		ConnectionLatencyManager = new LatencyManager(*this, *Cast<USpatialNetDriver>(Driver));
+	}
+
+	ConnectionLatencyManager->Enable(InPlayerControllerEntity);
+}
+
+void USpatialNetConnection::DisableLatencyManager()
+{
+	ConnectionLatencyManager->Disable();
 }

@@ -5,6 +5,7 @@
 #include "Schema/Component.h"
 #include "Schema/Heartbeat.h"
 #include "Schema/Interest.h"
+#include "Schema/Ping.h"
 #include "Schema/RPCPayload.h"
 #include "Schema/Singleton.h"
 #include "Schema/SpawnData.h"
@@ -62,6 +63,12 @@ void USpatialStaticComponentView::OnAddComponent(const Worker_AddComponentOp& Op
 		break;
 	case SpatialConstants::RPCS_ON_ENTITY_CREATION_ID:
 		Data = MakeUnique<SpatialGDK::ComponentStorage<SpatialGDK::RPCsOnEntityCreation>>(Op.data);
+		break;
+	case SpatialConstants::SERVER_PING_COMPONENT_ID:
+		Data = MakeUnique<SpatialGDK::ComponentStorage<SpatialGDK::ServerPing>>(Op.data);
+		break;
+	case SpatialConstants::CLIENT_PONG_COMPONENT_ID:
+		Data = MakeUnique<SpatialGDK::ComponentStorage<SpatialGDK::ClientPong>>(Op.data);
 		break;
 	default:
 		return;
