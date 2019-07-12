@@ -7,9 +7,8 @@ public class SpatialGDKEditor : ModuleRules
 	public SpatialGDKEditor(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
-        bFasterWithoutUnity = true;
 
-        PrivateDependencyModuleNames.AddRange(
+		PrivateDependencyModuleNames.AddRange(
 			new string[] {
 				"Core",
 				"CoreUObject",
@@ -18,7 +17,7 @@ public class SpatialGDKEditor : ModuleRules
 				"SpatialGDK",
 				"UnrealEd",
 				"GameplayAbilities"
-            });
+			});
 
 		PrivateIncludePaths.AddRange(
 			new string[]
