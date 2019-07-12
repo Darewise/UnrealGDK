@@ -6,10 +6,15 @@
 #include "SpatialGDKEditorCommandletPrivate.h"
 #include "SpatialGDKEditorSchemaGenerator.h"
 
+/// CORVUS_BEGIN
+#include "Engine/LevelStreaming.h"
 #include "Engine/ObjectLibrary.h"
 #include "Engine/World.h"
+#include "Engine/WorldComposition.h"
 #include "FileHelpers.h"
+#include "Kismet/GameplayStatics.h"
 #include "Misc/Paths.h"
+/// CORVUS_END
 
 using namespace SpatialGDKEditor::Schema;
 
@@ -71,6 +76,37 @@ int32 UGenerateSchemaCommandlet::Main(const FString& Args)
 				{
 					UE_LOG(LogSpatialGDKEditorCommandlet, Display, TEXT("Failed to load map %s"), *MapFilePath);
 				}
+
+				// Ensure all world composition streaming levels are also loaded
+				// This is needed for SpatialOS Entities that would be only used as Placed (Startup) Actors on sublevels
+				// (but not buildable by the player, nor referenced by any other gameplay elements)
+				// like specific hand-placed buildings and resources
+				if (GWorld->WorldComposition)
+				{
+					// Get the list of all distance-dependent streaming (excluding levels with streaming disabled)
+					// sub-levels visible and hidden levels from current view point
+					TArray<FDistanceVisibleLevel> distanceVisibleLevels;
+					{
+						TArray<FDistanceVisibleLevel> distanceHiddenLevels;
+						const FVector originLocation(0.f);
+						GWorld->WorldComposition->GetDistanceVisibleLevels(originLocation, distanceVisibleLevels, distanceHiddenLevels);
+						// merge both lists in one, we need to load everything to take a full snapshot
+						distanceVisibleLevels += MoveTemp(distanceHiddenLevels);
+					}
+
+					UE_LOG(LogSpatialGDKEditorCommandlet, Display, TEXT("Loading Streaming levels..."));
+					for (const auto& distanceVisibleLevel : distanceVisibleLevels)
+					{
+						if (distanceVisibleLevel.StreamingLevel && !distanceVisibleLevel.StreamingLevel->IsLevelLoaded())
+						{
+							const TArray<ULevelStreaming*> streamingLevels({ distanceVisibleLevel.StreamingLevel });
+							GWorld->AddStreamingLevels(streamingLevels);
+							GWorld->FlushLevelStreaming(EFlushLevelStreamingType::Full);
+						}
+					}
+					UE_LOG(LogSpatialGDKEditorCommandlet, Display, TEXT("All streaming Levels Loaded"));
+				}
+
 				break;
 			}
 		}
