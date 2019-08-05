@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased-`x.y.z`] - 2019-xx-xx
 
+### Features:
+- Visual Studio 2019 is now supported.
+
 ## [`0.6.1`] - 2019-08-15
 
 ### Features:
