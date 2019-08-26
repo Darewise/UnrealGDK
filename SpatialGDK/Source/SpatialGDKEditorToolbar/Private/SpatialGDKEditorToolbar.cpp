@@ -136,7 +136,7 @@ void FSpatialGDKEditorToolbarModule::Tick(float DeltaTime)
 
 bool FSpatialGDKEditorToolbarModule::CanExecuteSchemaGenerator() const
 {
-	return SpatialGDKEditorInstance.IsValid() && !SpatialGDKEditorInstance.Get()->IsSchemaGeneratorRunning();
+	return SpatialGDKEditorInstance.IsValid() && !SpatialGDKEditorInstance.Get()->IsSchemaGeneratorRunning() && !SpatialOSStackProcHandle.IsValid() && !CookMapProcess.IsValid();
 }
 
 bool FSpatialGDKEditorToolbarModule::CanExecuteSnapshotGenerator() const
@@ -264,10 +264,17 @@ TSharedRef<SWidget> FSpatialGDKEditorToolbarModule::CreateGenerateSchemaMenuCont
 TSharedRef<SWidget> FSpatialGDKEditorToolbarModule::GenerateComboMenu()
 {
 	const bool bShouldCloseWindowAfterMenuSelection = true;
-	FMenuBuilder MenuBuilder(bShouldCloseWindowAfterMenuSelection, NULL);
+	FMenuBuilder MenuBuilder(bShouldCloseWindowAfterMenuSelection, PluginCommands);
 
 	MenuBuilder.BeginSection(NAME_None, LOCTEXT("LocalWorkflow", "Local Workflow"));
 	{
+		// tip section
+		MenuBuilder.AddWidget(
+			SNew(STextBlock)
+			.ColorAndOpacity(FSlateColor::UseSubduedForeground())
+			.Text(LOCTEXT("LocalWorkflowTip", "Launch a dedicated server and game client (execute steps in order)."))
+			.WrapTextAt(200),
+			FText::GetEmpty());
 		MenuBuilder.AddMenuEntry(
 			LOCTEXT("LoadSublevels", "Load sub-levels"),
 			TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateRaw(this, &FSpatialGDKEditorToolbarModule::LoadSublevelsTooltip)),
@@ -277,6 +284,7 @@ TSharedRef<SWidget> FSpatialGDKEditorToolbarModule::GenerateComboMenu()
 				FCanExecuteAction::CreateRaw(this, &FSpatialGDKEditorToolbarModule::CanLoadSublevels)
 			)
 		);
+		MenuBuilder.AddMenuEntry(FSpatialGDKEditorToolbarCommands::Get().CreateSpatialGDKSchema);
 		MenuBuilder.AddMenuEntry(
 			LOCTEXT("CookMap", "Cook Current Map"),
 			TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateRaw(this, &FSpatialGDKEditorToolbarModule::CookMapTooltip)),
@@ -286,6 +294,8 @@ TSharedRef<SWidget> FSpatialGDKEditorToolbarModule::GenerateComboMenu()
 				FCanExecuteAction::CreateRaw(this, &FSpatialGDKEditorToolbarModule::CanCookMap)
 			)
 		);
+		MenuBuilder.AddMenuEntry(FSpatialGDKEditorToolbarCommands::Get().StartSpatialOSStackAction);
+		MenuBuilder.AddMenuEntry(FSpatialGDKEditorToolbarCommands::Get().StopSpatialOSStackAction);
 		MenuBuilder.AddMenuEntry(
 			LOCTEXT("LaunchDedicatedServer", "Launch Dedicated Server"),
 			TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateRaw(this, &FSpatialGDKEditorToolbarModule::LaunchDedicatedServerTooltip)),
@@ -599,7 +609,7 @@ void FSpatialGDKEditorToolbarModule::LaunchInspectorWebpageButtonClicked()
 
 bool FSpatialGDKEditorToolbarModule::StartSpatialOSStackCanExecute() const
 {
-	return !SpatialOSStackProcHandle.IsValid();
+	return !SpatialOSStackProcHandle.IsValid() && !CookMapProcess.IsValid();
 }
 
 bool FSpatialGDKEditorToolbarModule::StopSpatialOSStackCanExecute() const
@@ -816,7 +826,8 @@ bool FSpatialGDKEditorToolbarModule::CanLoadSublevels() const
 {
 	// Can package networked client only if cooking is not running
 	// Can package networked client only if packaging not already in progress
-	return !CookMapProcess.IsValid() && !PackageClientProcess.IsValid();
+	// Can package networked client only if SpatialOS not already running
+	return !CookMapProcess.IsValid() && !PackageClientProcess.IsValid() && !SpatialOSStackProcHandle.IsValid();
 }
 
 FText FSpatialGDKEditorToolbarModule::LoadSublevelsTooltip() const
@@ -856,9 +867,10 @@ void FSpatialGDKEditorToolbarModule::CookMap()
 bool FSpatialGDKEditorToolbarModule::CanCookMap() const
 {
 	// Can launch cooking only if not already running
-	// Can launch cooking only if dedicated server not  already running
+	// Can launch cooking only if SpatialOS not already running (because Cook Map is somehow killing any running SpatialOS)
+	// Can launch cooking only if dedicated server not already running
 	// TODO: we should check for network client(s) (at least the first one)
-	return !CookMapProcess.IsValid() && !ServerProcessHandle.IsValid();
+	return !CookMapProcess.IsValid() && !SpatialOSStackProcHandle.IsValid() && !ServerProcessHandle.IsValid();
 }
 
 FText FSpatialGDKEditorToolbarModule::CookMapTooltip() const
