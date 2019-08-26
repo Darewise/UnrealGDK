@@ -107,8 +107,6 @@ private:
 	FProcHandle SpatialOSStackProcHandle;
 	bool bStopSpatialOnExit;
 	
-	uint32 SpatialOSStackProcessID;
-
 	TWeakPtr<SNotificationItem> TaskNotificationPtr;
 
 	// CORVUS_BEGIN Local Workflow

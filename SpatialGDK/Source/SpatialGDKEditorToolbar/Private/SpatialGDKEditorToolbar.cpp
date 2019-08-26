@@ -116,7 +116,7 @@ void FSpatialGDKEditorToolbarModule::PreUnloadCallback()
 
 void FSpatialGDKEditorToolbarModule::Tick(float DeltaTime)
 {
-	if (SpatialOSStackProcessID != 0 && !FPlatformProcess::IsApplicationRunning(SpatialOSStackProcessID))
+	if (SpatialOSStackProcHandle.IsValid() && !FPlatformProcess::IsProcRunning(SpatialOSStackProcHandle)) // CORVUS: ID -> Handle
 	{
 		CleanupSpatialProcess();
 	}
@@ -187,7 +187,7 @@ void FSpatialGDKEditorToolbarModule::SetupToolbar(TSharedPtr<class FUICommandLis
 		FModuleManager::LoadModuleChecked<FLevelEditorModule>("LevelEditor");
 
 	{
-		/* Corvus: no interest of putting these in menus, especially not in Window menu (should use a dedicated one)
+		/* CORVUS: no interest of putting these in menus, especially not in Window menu (should use a dedicated one)
 		TSharedPtr<FExtender> MenuExtender = MakeShareable(new FExtender());
 		MenuExtender->AddMenuExtension(
 			"General", EExtensionHook::After, InPluginCommands,
@@ -599,7 +599,7 @@ void FSpatialGDKEditorToolbarModule::LaunchInspectorWebpageButtonClicked()
 
 bool FSpatialGDKEditorToolbarModule::StartSpatialOSStackCanExecute() const
 {
-	return !SpatialOSStackProcHandle.IsValid() && !FPlatformProcess::IsProcRunning(const_cast<FProcHandle&>(SpatialOSStackProcHandle));
+	return !SpatialOSStackProcHandle.IsValid();
 }
 
 bool FSpatialGDKEditorToolbarModule::StopSpatialOSStackCanExecute() const
@@ -625,7 +625,6 @@ void FSpatialGDKEditorToolbarModule::CheckForRunningStack()
 void FSpatialGDKEditorToolbarModule::CleanupSpatialProcess()
 {
 	FPlatformProcess::CloseProc(SpatialOSStackProcHandle);
-	SpatialOSStackProcessID = 0;
 
 	OnSpatialShutdown.Broadcast();
 }
