@@ -406,11 +406,17 @@ void SaveSchemaDatabase()
 	FString PackagePath = TEXT("/Game/Spatial/SchemaDatabase");
 	UPackage *Package = CreatePackage(nullptr, *PackagePath);
 
+	UE_LOG(LogSpatialGDKSchemaGenerator, Log, TEXT("SaveSchemaDatabase"));
+
 	ActorClassPathToSchema.KeySort([](const FString& LHS, const FString& RHS) { return LHS < RHS; });
 	SubobjectClassPathToSchema.KeySort([](const FString& LHS, const FString& RHS) { return LHS < RHS; });
 	LevelPathToComponentId.KeySort([](const FString& LHS, const FString& RHS) { return LHS < RHS; });
 
 	for (const auto& Pair : ActorClassPathToSchema)
+	{
+		UE_LOG(LogSpatialGDKSchemaGenerator, Verbose, TEXT("%s"), *Pair.Key);
+	}
+
 	USchemaDatabase* SchemaDatabase = NewObject<USchemaDatabase>(Package, USchemaDatabase::StaticClass(), FName("SchemaDatabase"), EObjectFlags::RF_Public | EObjectFlags::RF_Standalone);
 	SchemaDatabase->NextAvailableComponentId = NextAvailableComponentId;
 	SchemaDatabase->ActorClassPathToSchema = ActorClassPathToSchema;
@@ -563,6 +569,8 @@ bool TryLoadExistingSchemaDatabase()
 			return false;
 		}
 
+		UE_LOG(LogSpatialGDKSchemaGenerator, Log, TEXT("TryLoadExistingSchemaDatabase"));
+
 		const USchemaDatabase* const SchemaDatabase = Cast<USchemaDatabase>(FSoftObjectPath(SchemaDatabaseAssetPath).TryLoad());
 
 		if (SchemaDatabase == nullptr)
@@ -576,6 +584,11 @@ bool TryLoadExistingSchemaDatabase()
 		LevelComponentIds = SchemaDatabase->LevelComponentIds;
 		LevelPathToComponentId = SchemaDatabase->LevelPathToComponentId;
 		NextAvailableComponentId = SchemaDatabase->NextAvailableComponentId;
+
+		for (const auto& Pair : ActorClassPathToSchema)
+		{
+			UE_LOG(LogSpatialGDKSchemaGenerator, Verbose, TEXT("%s"), *Pair.Key);
+		}
 
 		// Component Id generation was updated to be non-destructive, if we detect an old schema database, delete it.
 		if (ActorClassPathToSchema.Num() > 0 && NextAvailableComponentId == SpatialConstants::STARTING_GENERATED_COMPONENT_ID)
