@@ -397,6 +397,17 @@ bool SaveSchemaDatabase(const FString& PackagePath)
 {
 	UPackage *Package = CreatePackage(nullptr, *PackagePath);
 
+	UE_LOG(LogSpatialGDKSchemaGenerator, Log, TEXT("SaveSchemaDatabase"));
+
+	ActorClassPathToSchema.KeySort([](const FString& LHS, const FString& RHS) { return LHS < RHS; });
+	SubobjectClassPathToSchema.KeySort([](const FString& LHS, const FString& RHS) { return LHS < RHS; });
+	LevelPathToComponentId.KeySort([](const FString& LHS, const FString& RHS) { return LHS < RHS; });
+
+	for (const auto& Pair : ActorClassPathToSchema)
+	{
+		UE_LOG(LogSpatialGDKSchemaGenerator, Verbose, TEXT("%s"), *Pair.Key);
+	}
+
 	USchemaDatabase* SchemaDatabase = NewObject<USchemaDatabase>(Package, USchemaDatabase::StaticClass(), FName("SchemaDatabase"), EObjectFlags::RF_Public | EObjectFlags::RF_Standalone);
 	SchemaDatabase->NextAvailableComponentId = NextAvailableComponentId;
 	SchemaDatabase->ActorClassPathToSchema = ActorClassPathToSchema;
@@ -598,6 +609,8 @@ bool LoadGeneratorStateFromSchemaDatabase(const FString& FileName)
 	FFileStatData StatData = FPlatformFileManager::Get().GetPlatformFile().GetStatData(*RelativeFileName);
 	if (StatData.bIsValid)
 	{
+		UE_LOG(LogSpatialGDKSchemaGenerator, Log, TEXT("TryLoadExistingSchemaDatabase"));
+
 		const FString DatabaseAssetPath = FPaths::SetExtension(FPaths::Combine(TEXT("/Game/"), FileName), TEXT(".SchemaDatabase"));
 		const USchemaDatabase* const SchemaDatabase = Cast<USchemaDatabase>(FSoftObjectPath(DatabaseAssetPath).TryLoad());
 
@@ -612,6 +625,11 @@ bool LoadGeneratorStateFromSchemaDatabase(const FString& FileName)
 		LevelComponentIds = SchemaDatabase->LevelComponentIds;
 		LevelPathToComponentId = SchemaDatabase->LevelPathToComponentId;
 		NextAvailableComponentId = SchemaDatabase->NextAvailableComponentId;
+
+		for (const auto& Pair : ActorClassPathToSchema)
+		{
+			UE_LOG(LogSpatialGDKSchemaGenerator, Verbose, TEXT("%s"), *Pair.Key);
+		}
 
 		// Component Id generation was updated to be non-destructive, if we detect an old schema database, delete it.
 		if (ActorClassPathToSchema.Num() > 0 && NextAvailableComponentId == SpatialConstants::STARTING_GENERATED_COMPONENT_ID)
