@@ -114,6 +114,8 @@ namespace SpatialConstants
 	const Worker_ComponentId RPCS_ON_ENTITY_CREATION_ID						= 9985;
 	const Worker_ComponentId DEBUG_METRICS_COMPONENT_ID						= 9984;
 	const Worker_ComponentId ALWAYS_RELEVANT_COMPONENT_ID					= 9983;
+	const Worker_ComponentId SERVER_PING_COMPONENT_ID						= 9982;
+	const Worker_ComponentId CLIENT_PONG_COMPONENT_ID						= 9981;
 
 	const Worker_ComponentId STARTING_GENERATED_COMPONENT_ID				= 10000;
 
@@ -143,6 +145,8 @@ namespace SpatialConstants
 	// ModifySettingPayload Field IDs
 	const Schema_FieldId MODIFY_SETTING_PAYLOAD_NAME_ID						= 1;
 	const Schema_FieldId MODIFY_SETTING_PAYLOAD_VALUE_ID					= 2;
+
+	const Schema_FieldId PING_PONG_EVENT_ID									= 1;
 
 	// UnrealRPCPayload Field IDs
 	const Schema_FieldId UNREAL_RPC_PAYLOAD_OFFSET_ID						= 1;

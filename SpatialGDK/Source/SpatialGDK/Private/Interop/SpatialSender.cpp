@@ -17,6 +17,7 @@
 #include "Schema/ClientRPCEndpoint.h"
 #include "Schema/Heartbeat.h"
 #include "Schema/Interest.h"
+#include "Schema/Ping.h"
 #include "Schema/RPCPayload.h"
 #include "Schema/ServerRPCEndpoint.h"
 #include "Schema/Singleton.h"
@@ -135,6 +136,8 @@ Worker_RequestId USpatialSender::CreateEntity(USpatialActorChannel* Channel)
 		ComponentWriteAcl.Add(SpatialConstants::DEBUG_METRICS_COMPONENT_ID, AuthoritativeWorkerRequirementSet);
 #endif // !UE_BUILD_SHIPPING
 		ComponentWriteAcl.Add(SpatialConstants::HEARTBEAT_COMPONENT_ID, OwningClientOnlyRequirementSet);
+		ComponentWriteAcl.Add(SpatialConstants::SERVER_PING_COMPONENT_ID, AuthoritativeWorkerRequirementSet);
+		ComponentWriteAcl.Add(SpatialConstants::CLIENT_PONG_COMPONENT_ID, OwningClientOnlyRequirementSet);
 	}
 
 	ComponentWriteAcl.Add(SpatialConstants::ALWAYS_RELEVANT_COMPONENT_ID, AuthoritativeWorkerRequirementSet);
@@ -232,6 +235,8 @@ Worker_RequestId USpatialSender::CreateEntity(USpatialActorChannel* Channel)
 		ComponentDatas.Add(ComponentFactory::CreateEmptyComponentData(SpatialConstants::DEBUG_METRICS_COMPONENT_ID));
 #endif // !UE_BUILD_SHIPPING
 		ComponentDatas.Add(Heartbeat().CreateHeartbeatData());
+		ComponentDatas.Add(ServerPing().CreateServerPingData());
+		ComponentDatas.Add(ClientPong().CreateClientPongData());
 	}
 
 	FUnresolvedObjectsMap UnresolvedObjectsMap;

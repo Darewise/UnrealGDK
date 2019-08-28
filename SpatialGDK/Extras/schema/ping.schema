@@ -1,0 +1,15 @@
+// Copyright (c) Improbable Worlds Ltd, All Rights Reserved
+package unreal;
+
+type PingEvent {
+}
+
+component ServerPing {
+    id = 9982;
+    event PingEvent server_ping;
+}
+
+component ClientPong {
+    id = 9981;
+    event PingEvent client_pong;
+}

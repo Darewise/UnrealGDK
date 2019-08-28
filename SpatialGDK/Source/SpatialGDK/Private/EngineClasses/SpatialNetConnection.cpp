@@ -2,17 +2,19 @@
 
 #include "EngineClasses/SpatialNetConnection.h"
 
+#include "Engine/World.h"
 #include "TimerManager.h"
 
 #include "EngineClasses/SpatialNetDriver.h"
 #include "EngineClasses/SpatialPackageMapClient.h"
-#include "Gameframework/PlayerController.h"
 #include "Gameframework/Pawn.h"
+#include "Gameframework/PlayerController.h"
 #include "Interop/Connection/SpatialWorkerConnection.h"
 #include "Interop/SpatialReceiver.h"
 #include "Interop/SpatialSender.h"
 #include "SpatialConstants.h"
 #include "SpatialGDKSettings.h"
+#include "Utils/LatencyManager.h"
 
 #include <WorkerSDK/improbable/c_schema.h>
 
@@ -190,4 +192,19 @@ void USpatialNetConnection::DisableHeartbeat()
 void USpatialNetConnection::OnHeartbeat()
 {
 	SetHeartbeatTimeoutTimer();
+}
+
+void USpatialNetConnection::SetupLatencyManager(Worker_EntityId InPlayerControllerEntity)
+{
+	if (ConnectionLatencyManager == nullptr)
+	{
+		ConnectionLatencyManager = new LatencyManager(*this, *Cast<USpatialNetDriver>(Driver));
+	}
+
+	ConnectionLatencyManager->Enable(InPlayerControllerEntity);
+}
+
+void USpatialNetConnection::DisableLatencyManager()
+{
+	ConnectionLatencyManager->Disable();
 }

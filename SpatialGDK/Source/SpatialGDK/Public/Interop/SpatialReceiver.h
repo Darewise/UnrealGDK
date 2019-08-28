@@ -105,6 +105,8 @@ using FIncomingRPCArray = TArray<TSharedPtr<FPendingIncomingRPC>>;
 
 DECLARE_DELEGATE_OneParam(EntityQueryDelegate, const Worker_EntityQueryResponseOp&);
 DECLARE_DELEGATE_OneParam(ReserveEntityIDsDelegate, const Worker_ReserveEntityIdsResponseOp&);
+DECLARE_DELEGATE_OneParam(ServerPingDelegate, const Worker_ComponentUpdateOp&);
+DECLARE_DELEGATE_OneParam(ClientPongDelegate, const Worker_ComponentUpdateOp&);
 DECLARE_DELEGATE_OneParam(CreateEntityDelegate, const Worker_CreateEntityResponseOp&);
 
 UCLASS()
@@ -142,6 +144,9 @@ public:
 	void AddEntityQueryDelegate(Worker_RequestId RequestId, EntityQueryDelegate Delegate);
 	void AddReserveEntityIdsDelegate(Worker_RequestId RequestId, ReserveEntityIDsDelegate Delegate);
 	void AddCreateEntityDelegate(Worker_RequestId RequestId, const CreateEntityDelegate& Delegate);
+
+	void AddServerPingDelegate(Worker_EntityId EntityId, ServerPingDelegate Delegate);
+	void AddClientPongDelegate(Worker_EntityId EntityId, ClientPongDelegate Delegate);
 
 	void OnEntityQueryResponse(const Worker_EntityQueryResponseOp& Op);
 
@@ -252,6 +257,8 @@ private:
 	TMap<Worker_RequestId, EntityQueryDelegate> EntityQueryDelegates;
 	TMap<Worker_RequestId, ReserveEntityIDsDelegate> ReserveEntityIDsDelegates;
 	TMap<Worker_RequestId, CreateEntityDelegate> CreateEntityDelegates;
+	TMap<Worker_EntityId_Key, ServerPingDelegate> ServerPingDelegates;
+	TMap<Worker_EntityId_Key, ClientPongDelegate> ClientPongDelegates;
 
 	// This will map PlayerController entities to the corresponding SpatialNetConnection
 	// for PlayerControllers that this server has authority over. This is used for player

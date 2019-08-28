@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Features:
 - Visual Studio 2019 is now supported.
+- Added Ping metric to `stat net` view. You can now see your latency from your client to the authoritative server worker. This measurement includes processing time on the client and server, as such the tick rate of your server worker will be reflected in your ping.
 
 ## [`0.6.1`] - 2019-08-15
 
