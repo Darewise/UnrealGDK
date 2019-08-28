@@ -18,6 +18,7 @@ class FUICommandList;
 class SSpatialGDKSimulatedPlayerDeployment;
 class SWindow;
 class USoundBase;
+class FMonitoredProcess;
 
 struct FWorkerTypeLaunchSection;
 
@@ -49,6 +50,7 @@ private:
 	void SetupToolbar(TSharedPtr<FUICommandList> PluginCommands);
 	void AddToolbarExtension(FToolBarBuilder& Builder);
 	void AddMenuExtension(FMenuBuilder& Builder);
+	TSharedRef<SWidget> GenerateComboMenu();
 
 	void VerifyAndStartDeployment();
 
@@ -75,6 +77,24 @@ private:
 	void SchemaGenerateButtonClicked();
 	void SchemaGenerateFullButtonClicked();
 	void OnPropertyChanged(UObject* ObjectBeingModified, FPropertyChangedEvent& PropertyChangedEvent);
+
+	void LoadSublevels();
+	bool CanLoadSublevels() const;
+	FText LoadSublevelsTooltip() const;
+	void CookMap();
+	bool CanCookMap() const;
+	FText CookMapTooltip() const;
+	void LaunchDedicatedServer();
+	bool CanLaunchDedicatedServer() const;
+	FText LaunchDedicatedServerTooltip() const;
+	void ToggleServerWithRendering();
+	bool IsServerWithRendering() const;
+	void LaunchNetworkedClient();
+	bool CanLaunchNetworkedClient() const;
+	FText LaunchNetworkedClientTooltip() const;
+	void PackageNetworkedClient();
+	bool CanPackageNetworkedClient() const;
+	FText PackageNetworkedClientTooltip() const;
 
 	void ShowSimulatedPlayerDeploymentDialog();
 
@@ -110,6 +130,13 @@ private:
 	bool bStopSpatialOnExit;
 
 	TWeakPtr<SNotificationItem> TaskNotificationPtr;
+
+	// CORVUS_BEGIN Local Workflow
+	bool bServerWithRendering = false;
+	FProcHandle ServerProcessHandle;
+	TSharedPtr<FMonitoredProcess> CookMapProcess;
+	TSharedPtr<FMonitoredProcess> PackageClientProcess;
+	// CORVUS_END
 
 	// Sounds used for execution of tasks.
 	USoundBase* ExecutionStartSound;
