@@ -10,6 +10,28 @@ DEFINE_LOG_CATEGORY(LogSpatialCommandUtils);
 
 #define LOCTEXT_NAMESPACE "SpatialCommandUtils"
 
+// CORVUS_BEGIN
+SPATIALGDKSERVICES_API bool SpatialCommandUtils::SpatialUpdate(bool bIsRunningInChina, const FString& DirectoryToRun, FString& OutResult, int32& OutExitCode)
+{
+	FString Command = TEXT("update");
+
+	if (bIsRunningInChina)
+	{
+		Command += SpatialGDKServicesConstants::ChinaEnvironmentArgument;
+	}
+
+	FSpatialGDKServicesModule::ExecuteAndReadOutput(*SpatialGDKServicesConstants::SpatialExe, Command, DirectoryToRun, OutResult, OutExitCode);
+
+	bool bSuccess = OutExitCode == 0;
+	if (!bSuccess)
+	{
+		UE_LOG(LogSpatialCommandUtils, Warning, TEXT("Spatial update failed. Error Code: %d, Error Message: %s"), OutExitCode, *OutResult);
+	}
+
+	return bSuccess;
+}
+// CORVUS_END
+
 bool SpatialCommandUtils::SpatialVersion(bool bIsRunningInChina, const FString& DirectoryToRun, FString& OutResult, int32& OutExitCode)
 {
 	FString Command = TEXT("version");
@@ -77,7 +99,11 @@ bool SpatialCommandUtils::StartSpatialService(const FString& Version, const FStr
 	FSpatialGDKServicesModule::ExecuteAndReadOutput(*SpatialGDKServicesConstants::SpatialExe, Command, DirectoryToRun, OutResult, OutExitCode);
 
 	bool bSuccess = OutExitCode == 0;
-	if (!bSuccess)
+	if (bSuccess)
+	{
+		UE_LOG(LogSpatialCommandUtils, Log, TEXT("Spatial service started! (%s)\n%s"), *Command, *OutResult); // CORVUS
+	}
+	else
 	{
 		UE_LOG(LogSpatialCommandUtils, Warning, TEXT("Spatial start service failed. Error Code: %d, Error Message: %s"), OutExitCode, *OutResult);
 	}

@@ -79,6 +79,7 @@ void FLocalDeploymentManager::Init(FString RuntimeIPToExpose)
 
 			if (GetDefault<UGeneralProjectSettings>()->UsesSpatialNetworking())
 			{
+				TryUpdateSpatialExe();  // CORVUS
 				TryStartSpatialService(RuntimeIPToExpose);
 			}
 			else
@@ -293,6 +294,8 @@ bool FLocalDeploymentManager::FinishLocalDeployment(FString LaunchConfig, FStrin
 {
 	FString SpotCreateArgs = FString::Printf(TEXT("alpha deployment create --launch-config=\"%s\" --name=localdeployment --project-name=%s --json --starting-snapshot-id=\"%s\" --runtime-version=%s %s"), *LaunchConfig, *FSpatialGDKServicesModule::GetProjectName(), *SnapshotName, *RuntimeVersion, *LaunchArgs);
 
+	UE_LOG(LogSpatialDeploymentManager, Log, TEXT("Creating local deployment with '%s'"), *SpotCreateArgs); // CORVUS
+
 	FDateTime SpotCreateStart = FDateTime::Now();
 
 	FString SpotCreateResult;
@@ -504,6 +507,22 @@ bool FLocalDeploymentManager::TryStopLocalDeployment()
 	return bSuccess;
 }
 
+// CORVUS_BEGIN
+bool SPATIALGDKSERVICES_API FLocalDeploymentManager::TryUpdateSpatialExe()
+{
+	FString SpatialUpdateResult;
+	int32 ExitCode;
+
+	bool bSuccess = SpatialCommandUtils::SpatialUpdate(bIsInChina, SpatialGDKServicesConstants::SpatialOSDirectory, SpatialUpdateResult, ExitCode);
+	if (bSuccess)
+	{
+		UE_LOG(LogSpatialDeploymentManager, Display, TEXT("Spatial CLI is up to date"));
+	}
+
+	return true;
+}
+// CORVUS_END
+
 bool FLocalDeploymentManager::TryStartSpatialService(FString RuntimeIPToExpose)
 {
 	if (!bLocalDeploymentManagerEnabled)
@@ -534,7 +553,6 @@ bool FLocalDeploymentManager::TryStartSpatialService(FString RuntimeIPToExpose)
 
 	if (bSuccess && ServiceStartResult.Contains(TEXT("RUNNING")))
 	{
-		UE_LOG(LogSpatialDeploymentManager, Log, TEXT("Spatial service started!"));
 		ExposedRuntimeIP = RuntimeIPToExpose;
 		bSpatialServiceRunning = true;
 		return true;
