@@ -77,6 +77,7 @@ void FLocalDeploymentManager::Init(FString RuntimeIPToExpose)
 			// Start spatial service in the current project if spatial networking is enabled
 			if (GetDefault<UGeneralProjectSettings>()->bSpatialNetworking)
 			{
+				TryUpdateSpatialExe();  // CORVUS
 				TryStartSpatialService(RuntimeIPToExpose);
 			}
 			else
@@ -277,6 +278,8 @@ bool FLocalDeploymentManager::FinishLocalDeployment(FString LaunchConfig, FStrin
 {
 	FString SpotCreateArgs = FString::Printf(TEXT("alpha deployment create --launch-config=\"%s\" --name=localdeployment --project-name=%s --json --starting-snapshot-id=\"%s\" %s"), *LaunchConfig, *FSpatialGDKServicesModule::GetProjectName(), *SnapshotName, *LaunchArgs);
 
+	UE_LOG(LogSpatialDeploymentManager, Log, TEXT("Creating local deployment with '%s'"), *SpotCreateArgs); // CORVUS
+
 	FDateTime SpotCreateStart = FDateTime::Now();
 
 	FString SpotCreateResult;
@@ -469,6 +472,28 @@ bool FLocalDeploymentManager::TryStopLocalDeployment()
 	return bSuccess;
 }
 
+// CORVUS_BEGIN
+bool SPATIALGDKSERVICES_API FLocalDeploymentManager::TryUpdateSpatialExe()
+{
+	FString SpatialUpdateArgs = FString::Printf(TEXT("update"), *SpatialServiceVersion);
+	FString ServiceUpdateResult;
+	int32 ExitCode;
+	FSpatialGDKServicesModule::ExecuteAndReadOutput(FSpatialGDKServicesModule::GetSpatialExe(), SpatialUpdateArgs, FSpatialGDKServicesModule::GetSpatialOSDirectory(), ServiceUpdateResult, ExitCode);
+
+	bStartingSpatialService = false;
+
+	if (ExitCode != ExitCodeSuccess)
+	{
+		UE_LOG(LogSpatialDeploymentManager, Error, TEXT("Spatial failed to update!"));
+		return false;
+	}
+
+	UE_LOG(LogSpatialDeploymentManager, Log, TEXT("Spatial service upated!\n%s"), *ServiceUpdateResult);
+
+	return true;
+}
+// CORVUS_END
+
 bool FLocalDeploymentManager::TryStartSpatialService(FString RuntimeIPToExpose)
 {
 	if (bSpatialServiceRunning)
@@ -503,7 +528,7 @@ bool FLocalDeploymentManager::TryStartSpatialService(FString RuntimeIPToExpose)
 
 	if (ExitCode == ExitCodeSuccess && ServiceStartResult.Contains(TEXT("RUNNING")))
 	{
-		UE_LOG(LogSpatialDeploymentManager, Log, TEXT("Spatial service started!"));
+		UE_LOG(LogSpatialDeploymentManager, Log, TEXT("Spatial service started! (%s)\n%s"), *SpatialServiceStartArgs, *ServiceStartResult); // CORVUS
 		ExposedRuntimeIP = RuntimeIPToExpose;
 		bSpatialServiceRunning = true;
 		return true;
