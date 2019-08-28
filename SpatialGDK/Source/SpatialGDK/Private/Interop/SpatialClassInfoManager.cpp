@@ -37,6 +37,11 @@ bool USpatialClassInfoManager::TryInit(USpatialNetDriver* InNetDriver, UActorGro
 		return false;
 	}
 
+	for (const auto& Pair : SchemaDatabase->ActorClassPathToSchema)
+	{
+		UE_LOG(LogSpatialClassInfoManager, Verbose, TEXT("%s"), *Pair.Key);
+	}
+
 	return true;
 }
 
