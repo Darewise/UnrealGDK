@@ -30,6 +30,8 @@ public:
 	bool SPATIALGDKSERVICES_API TryStartLocalDeployment(FString LaunchConfig, FString LaunchArgs, FString SnapshotName, FString RuntimeIPToExpose);
 	bool SPATIALGDKSERVICES_API TryStopLocalDeployment();
 
+	bool SPATIALGDKSERVICES_API TryUpdateSpatialExe();
+
 	bool SPATIALGDKSERVICES_API TryStartSpatialService(FString RuntimeIPToExpose);
 	bool SPATIALGDKSERVICES_API TryStopSpatialService();
 
