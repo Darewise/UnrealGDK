@@ -48,6 +48,7 @@ FLocalDeploymentManager::FLocalDeploymentManager()
 		AsyncTask(ENamedThreads::AnyBackgroundThreadNormalTask, [this]
 		{
 			TryStopSpatialService();
+			TryUpdateSpatialExe();  // CORVUS
 			TryStartSpatialService();
 
 			// Ensure we have an up to date state of the spatial service and local deployment.
@@ -236,6 +237,8 @@ bool FLocalDeploymentManager::TryStartLocalDeployment(FString LaunchConfig, FStr
 
 	FString SpotCreateArgs = FString::Printf(TEXT("alpha deployment create --launch-config=\"%s\" --name=localdeployment --project-name=%s --json %s"), *LaunchConfig, *ProjectName, *LaunchArgs);
 
+	UE_LOG(LogSpatialDeploymentManager, Log, TEXT("Creating local deployment with '%s'"), *SpotCreateArgs); // CORVUS
+
 	FDateTime SpotCreateStart = FDateTime::Now();
 
 	FString SpotCreateResult;
@@ -358,6 +361,28 @@ bool FLocalDeploymentManager::TryStopLocalDeployment()
 	return bSuccess;
 }
 
+// CORVUS_BEGIN
+bool SPATIALGDKSERVICES_API FLocalDeploymentManager::TryUpdateSpatialExe()
+{
+	FString SpatialUpdateArgs = FString::Printf(TEXT("update"), *SpatialServiceVersion);
+	FString ServiceUpdateResult;
+	int32 ExitCode;
+	ExecuteAndReadOutput(SpatialExe, SpatialUpdateArgs, FSpatialGDKServicesModule::GetSpatialOSDirectory(), ServiceUpdateResult, ExitCode);
+
+	bStartingSpatialService = false;
+
+	if (ExitCode != ExitCodeSuccess)
+	{
+		UE_LOG(LogSpatialDeploymentManager, Error, TEXT("Spatial failed to update!"));
+		return false;
+	}
+
+	UE_LOG(LogSpatialDeploymentManager, Log, TEXT("Spatial service upated!\n%s"), *ServiceUpdateResult);
+
+	return true;
+}
+// CORVUS_END
+
 bool FLocalDeploymentManager::TryStartSpatialService()
 {
 	if (bSpatialServiceRunning)
@@ -383,7 +408,7 @@ bool FLocalDeploymentManager::TryStartSpatialService()
 
 	if (ServiceStartResult.Contains(TEXT("RUNNING")))
 	{
-		UE_LOG(LogSpatialDeploymentManager, Log, TEXT("Spatial service started!"));
+		UE_LOG(LogSpatialDeploymentManager, Log, TEXT("Spatial service started! (%s)\n%s"), *SpatialServiceStartArgs, *ServiceStartResult); // CORVUS
 		bSpatialServiceRunning = true;
 		return true;
 	}
