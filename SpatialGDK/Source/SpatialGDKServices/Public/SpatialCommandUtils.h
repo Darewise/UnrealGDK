@@ -10,6 +10,7 @@ class SpatialCommandUtils
 {
 public:
 
+	SPATIALGDKSERVICES_API static bool SpatialUpdate(bool bIsRunningInChina, const FString& DirectoryToRun, FString& OutResult, int32& OutExitCode); // CORVUS
 	SPATIALGDKSERVICES_API static bool SpatialVersion(bool bIsRunningInChina, const FString& DirectoryToRun, FString& OutResult, int32& OutExitCode);
 	SPATIALGDKSERVICES_API static bool AttemptSpatialAuth(bool bIsRunningInChina);
 	SPATIALGDKSERVICES_API static bool StartSpatialService(const FString& Version, const FString& RuntimeIP, bool bIsRunningInChina, const FString& DirectoryToRun, FString& OutResult, int32& OutExitCode);
