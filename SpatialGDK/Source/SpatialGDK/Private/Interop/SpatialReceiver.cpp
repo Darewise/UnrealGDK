@@ -267,6 +267,7 @@ void USpatialReceiver::HandlePlayerLifecycleAuthority(const Worker_AuthorityChan
 		}
 	}
 
+#if !UE_BUILD_SHIPPING
 	// Initialise Latency Manager for server authoritative over the server ping component and
 	// for the client authoritative over the client pong component
 	else if ((bIsServer && Op.component_id == SpatialConstants::SERVER_PING_COMPONENT_ID) ||
@@ -288,6 +289,7 @@ void USpatialReceiver::HandlePlayerLifecycleAuthority(const Worker_AuthorityChan
 			}
 		}
 	}
+#endif // !UE_BUILD_SHIPPING
 }
 
 void USpatialReceiver::HandleActorAuthority(const Worker_AuthorityChangeOp& Op)
