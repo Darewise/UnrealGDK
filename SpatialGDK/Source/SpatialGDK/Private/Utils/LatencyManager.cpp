@@ -35,8 +35,17 @@ void LatencyManager::Enable(Worker_EntityId InPlayerControllerEntity)
 
 		if (EventCount > 0)
 		{
-			NetConnection.PlayerController->PlayerState->UpdatePing(ReceivedTimestamp - LastPingSent);
-			SendPingOrPong(NetDriver.IsServer() ? SpatialConstants::SERVER_PING_COMPONENT_ID : SpatialConstants::CLIENT_PONG_COMPONENT_ID);
+			check(NetConnection.PlayerController);
+
+			if (NetConnection.PlayerController->PlayerState)
+			{
+				NetConnection.PlayerController->PlayerState->UpdatePing(ReceivedTimestamp - LastPingSent);
+				SendPingOrPong(NetDriver.IsServer() ? SpatialConstants::SERVER_PING_COMPONENT_ID : SpatialConstants::CLIENT_PONG_COMPONENT_ID);
+			}
+			else
+			{
+				UE_LOG(LogTemp, Warning, TEXT("LatencyManager::Enable(%s) PlayerState is nullptr"), *NetConnection.PlayerController->GetName());
+			}
 		}
 	});
 
