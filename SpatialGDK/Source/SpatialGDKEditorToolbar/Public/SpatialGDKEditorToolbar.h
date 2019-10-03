@@ -87,11 +87,11 @@ private:
 	void LaunchDedicatedServer();
 	bool CanLaunchDedicatedServer() const;
 	FText LaunchDedicatedServerTooltip() const;
-	void ToggleServerWithRendering();
-	bool IsServerWithRendering() const;
 	void LaunchNetworkedClient();
 	bool CanLaunchNetworkedClient() const;
 	FText LaunchNetworkedClientTooltip() const;
+	void ExploreDedicatedServerLogs() const;
+	void ExploreNetworkedClientLogs();
 	void PackageNetworkedClient();
 	bool CanPackageNetworkedClient() const;
 	FText PackageNetworkedClientTooltip() const;
@@ -132,7 +132,6 @@ private:
 	TWeakPtr<SNotificationItem> TaskNotificationPtr;
 
 	// CORVUS_BEGIN Local Workflow
-	bool bServerWithRendering = false;
 	FProcHandle ServerProcessHandle;
 	TSharedPtr<FMonitoredProcess> CookMapProcess;
 	TSharedPtr<FMonitoredProcess> PackageClientProcess;

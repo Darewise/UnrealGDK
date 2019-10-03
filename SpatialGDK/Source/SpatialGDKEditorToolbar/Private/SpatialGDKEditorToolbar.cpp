@@ -313,7 +313,7 @@ TSharedRef<SWidget> FSpatialGDKEditorToolbarModule::GenerateComboMenu()
 			SNew(STextBlock)
 			.ColorAndOpacity(FSlateColor::UseSubduedForeground())
 			.Text(LOCTEXT("LocalWorkflowTip", "Launch a dedicated server and game client (execute steps in order)."))
-			.WrapTextAt(200),
+			.WrapTextAt(180),
 			FText::GetEmpty());
 		MenuBuilder.AddMenuEntry(
 			LOCTEXT("LoadSublevels", "Load sub-levels"),
@@ -354,6 +354,18 @@ TSharedRef<SWidget> FSpatialGDKEditorToolbarModule::GenerateComboMenu()
 				FExecuteAction::CreateRaw(this, &FSpatialGDKEditorToolbarModule::LaunchNetworkedClient),
 				FCanExecuteAction::CreateRaw(this, &FSpatialGDKEditorToolbarModule::CanLaunchNetworkedClient)
 			)
+		);
+		MenuBuilder.AddMenuEntry(
+			LOCTEXT("ExploreDedicatedServerLogs", "Show Dedicated Server logs"),
+			LOCTEXT("ExploreDedicatedServerLogsToolTip", "Open File Explorer to show log files of the Dedicated Server"),
+			FSlateIcon(FEditorStyle::GetStyleSetName(), "MessageLog.TabIcon"),
+			FUIAction(FExecuteAction::CreateRaw(this, &FSpatialGDKEditorToolbarModule::ExploreDedicatedServerLogs))
+		);
+		MenuBuilder.AddMenuEntry(
+			LOCTEXT("ExploreNetworkedClientLogs", "Show Networked Client logs"),
+			LOCTEXT("ExploreDedicatedServerLogsToolTip", "Open File Explorer to show log files of the Networked Client"),
+			FSlateIcon(FEditorStyle::GetStyleSetName(), "MessageLog.TabIcon"),
+			FUIAction(FExecuteAction::CreateRaw(this, &FSpatialGDKEditorToolbarModule::ExploreNetworkedClientLogs))
 		);
 		MenuBuilder.AddMenuEntry(
 			LOCTEXT("PackageNetworkedClient", "Package Networked Client"),
@@ -859,7 +871,6 @@ bool FSpatialGDKEditorToolbarModule::GenerateDefaultLaunchConfig(const FString& 
 					Writer->WriteValue(TEXT("z_meters"), LaunchConfigDescription.World.Dimensions.Y);
 				Writer->WriteObjectEnd();
 			Writer->WriteValue(TEXT("chunk_edge_length_meters"), LaunchConfigDescription.World.ChunkEdgeLengthMeters);
-			Writer->WriteValue(TEXT("streaming_query_interval"), LaunchConfigDescription.World.StreamingQueryIntervalSeconds);
 			Writer->WriteArrayStart(TEXT("legacy_flags"));
 			for (auto& Flag : LaunchConfigDescription.World.LegacyFlags)
 			{
@@ -1088,7 +1099,7 @@ void FSpatialGDKEditorToolbarModule::LoadSublevels()
 {
 	// Display a notification an add a delay to let it shows up since the snapshot can stall the editor for a while
 	UnrealUtils::DisplayNotification(TEXT("Loading sublevels..."));
-	UnrealUtils::DelayedExec(*GEditor->GetTimerManager(), 0.5f, [this]() {
+	UnrealUtils::DelayedExecUnsafe(*GEditor->GetTimerManager(), 0.5f, [this]() {
 		// In World Composition, we need to load all sub-levels to populate the snapshot
 		UnrealUtils::LoadWorldCompositionStreamingLevels();
 	});
@@ -1121,19 +1132,11 @@ void FSpatialGDKEditorToolbarModule::CookMap()
 		return;
 	}
 
-	// TODO: call directly UAT here instead of relying on a batch file
-	FString cookMapBatch = FPaths::RootDir() / TEXT("../Tools/LocalDemo/cook_map.bat");
-	FPaths::CollapseRelativeDirectories(cookMapBatch);
+	const FString AutomationTool = FPaths::RootDir() / TEXT("Engine/Binaries/DotNET/AutomationTool.exe");
 	const FString CurrentLevelName = UGameplayStatics::GetCurrentLevelName(GEditor->GetEditorWorldContext().World());
-	const FString cmdArgs = FString::Printf(TEXT("/c \"\"%s\" %s\""), *cookMapBatch, *CurrentLevelName);
-	if (FPaths::FileExists(cookMapBatch))
-	{
-		CookMapProcess = UnrealUtils::LaunchMonitoredProcess(TEXT("Cooking Map"), TEXT("cmd.exe"), cmdArgs);
-	}
-	else
-	{
-		UnrealUtils::DisplayNotification(FString::Printf(TEXT("%s not found"), *cookMapBatch), false);
-	}
+	const FString ProjectFilePath = FPaths::ConvertRelativePathToFull(FPaths::GetProjectFilePath());
+	const FString CommandLineArgs = FString::Printf(TEXT("BuildCookRun -project=\"%s\" -unattended -noP4 -Map=%s -clientconfig=Development -platform=Win64 -server -serverconfig=Development -serverplatform=Win64 -nocompile -nocompileeditor -cook -iterativecooking -SkipCookingEditorContent -unversioned"), *ProjectFilePath, *CurrentLevelName);
+	CookMapProcess = UnrealUtils::LaunchMonitoredProcess(TEXT("Cooking Map"), AutomationTool, CommandLineArgs);
 }
 
 bool FSpatialGDKEditorToolbarModule::CanCookMap() const
@@ -1157,18 +1160,18 @@ FText FSpatialGDKEditorToolbarModule::CookMapTooltip() const
 
 void FSpatialGDKEditorToolbarModule::LaunchDedicatedServer()
 {
-	static const FString workingDir = FPaths::ConvertRelativePathToFull(FPaths::ProjectDir());
-	static const FString serverPath = workingDir / TEXT("Binaries/Win64/CorvusServer.exe");
+	static const FString WorkingDir = FPaths::ConvertRelativePathToFull(FPaths::ProjectDir());
+	static const FString ServerPath = WorkingDir / TEXT("Binaries/Win64/CorvusServer.exe");
 	const FString CurrentLevelName = UGameplayStatics::GetCurrentLevelName(GEditor->GetEditorWorldContext().World());
 	const USpatialGDKEditorSettings* Settings = GetDefault<USpatialGDKEditorSettings>();
 	const FString CommandLineFlags = Settings->LocalWorflowServerCommandLineFlags;
 
 	// Launch the real dedicated server executable
-	const FString cmdArgument = FString::Printf(
-		TEXT("%s +appName corvus +projectName corvus_+deploymentName corvus_local_workflow_%s +workerType UnrealWorker -messaging -SessionName=\"Local Workflow UnrealWorker Server\" -log -nopauseonsuccess -NoVerifyGC %s"),
-		*CurrentLevelName, *FGenericPlatformMisc::GetDeviceId(), *CommandLineFlags);
+	const FString CommandLineArgs = FString::Printf(
+		TEXT("%s +appName corvus +projectName corvus +deploymentName corvus_local_workflow +workerType UnrealWorker +useExternalIpForBridge true -messaging -SessionName=\"Local Workflow UnrealWorker Server\" -log -nopauseonsuccess -NoVerifyGC %s"),
+		*CurrentLevelName, *CommandLineFlags);
 
-	ServerProcessHandle = UnrealUtils::LaunchProcess(serverPath, cmdArgument, workingDir);
+	ServerProcessHandle = UnrealUtils::LaunchProcess(ServerPath, CommandLineArgs, WorkingDir);
 
 	UnrealUtils::DisplayNotification(ServerProcessHandle.IsValid()
 		? FString::Printf(TEXT("Dedicated Server Starting on %s..."), *CurrentLevelName)
@@ -1196,29 +1199,19 @@ FText FSpatialGDKEditorToolbarModule::LaunchDedicatedServerTooltip() const
 		return LOCTEXT("LaunchDedicatedServer_Tooltip", "Launch a dedicated server worker.\nUses the final server executable in a new process.");
 }
 
-void FSpatialGDKEditorToolbarModule::ToggleServerWithRendering()
-{
-	bServerWithRendering = !bServerWithRendering;
-}
-
-bool FSpatialGDKEditorToolbarModule::IsServerWithRendering() const
-{
-	return bServerWithRendering;
-}
-
 void FSpatialGDKEditorToolbarModule::LaunchNetworkedClient()
 {
-	static const FString workingDir = FPaths::ConvertRelativePathToFull(FPaths::ProjectDir());
-	static const FString clientPath = workingDir / TEXT("Binaries/Win64/Corvus.exe");
+	static const FString WorkingDir = FPaths::ConvertRelativePathToFull(FPaths::ProjectDir());
+	static const FString ClientPath = WorkingDir / TEXT("Binaries/Win64/Corvus.exe");
 	const USpatialGDKEditorSettings* Settings = GetDefault<USpatialGDKEditorSettings>();
 	const FString ServerIpAddr = Settings->LocalWorflowServerIpAddr.IsEmpty() ? TEXT("127.0.0.1") : Settings->LocalWorflowServerIpAddr;
 	const FString CommandLineFlags = Settings->LocalWorflowClientCommandLineFlags;
 
-	const FString cmdArgument = FString::Printf(
-		TEXT("%s +appName corvus +projectName corvus +deploymentName corvus_local_workflow_%s +workerType UnrealClient -messaging -SessionName=\"Local Workflow UnrealClient\" -log -NoVerifyGC %s"),
-		*ServerIpAddr, *FGenericPlatformMisc::GetDeviceId(), *CommandLineFlags);
+	const FString CommandLineArgs = FString::Printf(
+		TEXT("%s +appName corvus +projectName corvus +deploymentName corvus_local_workflow +workerType UnrealClient +useExternalIpForBridge true -messaging -SessionName=\"Local Workflow UnrealClient\" -log -NoVerifyGC %s"),
+		*ServerIpAddr, *CommandLineFlags);
 
-	FProcHandle clientProcessHandle = UnrealUtils::LaunchProcess(clientPath, cmdArgument, workingDir);
+	FProcHandle clientProcessHandle = UnrealUtils::LaunchProcess(ClientPath, CommandLineArgs, WorkingDir);
 
 	UnrealUtils::DisplayNotification(clientProcessHandle.IsValid()
 		? FString::Printf(TEXT("Network Client Starting on %s..."), *ServerIpAddr)
@@ -1247,18 +1240,32 @@ FText FSpatialGDKEditorToolbarModule::LaunchNetworkedClientTooltip() const
 		return LOCTEXT("LaunchNetworkedClient_Tooltip", "Launch a networked client.\nUses the final game client executable in a new process.");
 }
 
+void FSpatialGDKEditorToolbarModule::ExploreDedicatedServerLogs() const
+{
+	static const FString SavedPath = FPaths::ConvertRelativePathToFull(FPaths::ProjectSavedDir());
+	const FString LogsPath = FPaths::Combine(SavedPath, TEXT("Cooked/WindowsServer/Corvus/Saved/Logs/"));
+	FPlatformProcess::ExploreFolder(*LogsPath);
+}
+
+void FSpatialGDKEditorToolbarModule::ExploreNetworkedClientLogs()
+{
+	static const FString SavedPath = FPaths::ConvertRelativePathToFull(FPaths::ProjectSavedDir());
+	const FString LogsPath = FPaths::Combine(SavedPath, TEXT("Cooked/WindowsNoEditor/Corvus/Saved/Logs/"));
+	FPlatformProcess::ExploreFolder(*LogsPath);
+}
+
 void FSpatialGDKEditorToolbarModule::PackageNetworkedClient()
 {
-	FString packageClientBatch = FPaths::RootDir() / TEXT("../Tools/LocalDemo/package_game_client.bat");
-	FPaths::CollapseRelativeDirectories(packageClientBatch);
-	const FString cmdArgs = FString::Printf(TEXT("/c \"%s\""), *packageClientBatch);
-	if (FPaths::FileExists(packageClientBatch))
+	FString PackageClientBatch = FPaths::RootDir() / TEXT("../Tools/LocalDemo/package_game_client.bat");
+	FPaths::CollapseRelativeDirectories(PackageClientBatch);
+	const FString CommandLineArgs = FString::Printf(TEXT("/c \"%s\""), *PackageClientBatch);
+	if (FPaths::FileExists(PackageClientBatch))
 	{
-		PackageClientProcess = UnrealUtils::LaunchMonitoredProcess(TEXT("Packaging Client"), TEXT("cmd.exe"), cmdArgs);
+		PackageClientProcess = UnrealUtils::LaunchMonitoredProcess(TEXT("Packaging Client"), TEXT("cmd.exe"), CommandLineArgs);
 	}
 	else
 	{
-		UnrealUtils::DisplayNotification(FString::Printf(TEXT("%s not found"), *packageClientBatch), false);
+		UnrealUtils::DisplayNotification(FString::Printf(TEXT("%s not found"), *PackageClientBatch), false);
 	}
 }
 
