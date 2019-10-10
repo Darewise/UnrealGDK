@@ -2,10 +2,14 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+
 #include <WorkerSDK/improbable/c_worker.h>
 
 class USpatialNetConnection;
 class USpatialNetDriver;
+
+DECLARE_LOG_CATEGORY_EXTERN(LogSpatialLatencyManager, Log, All);
 
 class LatencyManager
 {
@@ -20,6 +24,7 @@ private:
 
 	Worker_EntityId PlayerControllerEntity;
 	float LastPingSent;
+	FTimerHandle PongTimerHandle;
 
 	const USpatialNetConnection& NetConnection;
 	const USpatialNetDriver& NetDriver;

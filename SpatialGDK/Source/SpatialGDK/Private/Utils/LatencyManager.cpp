@@ -12,6 +12,8 @@
 #include "Interop/SpatialReceiver.h"
 #include "SpatialConstants.h"
 
+DEFINE_LOG_CATEGORY(LogSpatialLatencyManager);
+
 LatencyManager::LatencyManager(const USpatialNetConnection& InConnection, const USpatialNetDriver& InDriver)
 	: PlayerControllerEntity(SpatialConstants::INVALID_ENTITY_ID)
 	, NetConnection(InConnection)
@@ -39,12 +41,25 @@ void LatencyManager::Enable(Worker_EntityId InPlayerControllerEntity)
 
 			if (NetConnection.PlayerController->PlayerState)
 			{
-				NetConnection.PlayerController->PlayerState->UpdatePing(ReceivedTimestamp - LastPingSent);
-				SendPingOrPong(NetDriver.IsServer() ? SpatialConstants::SERVER_PING_COMPONENT_ID : SpatialConstants::CLIENT_PONG_COMPONENT_ID);
+				if (NetDriver.IsServer())
+				{
+					// The Server answers to the client's pong as fast as possible for the client to be able to measure latency
+					SendPingOrPong(SpatialConstants::SERVER_PING_COMPONENT_ID);
+				}
+				else
+				{
+					UE_LOG(LogSpatialLatencyManager, Verbose, TEXT("UpdatePing(%f)"), (ReceivedTimestamp - LastPingSent));
+					NetConnection.PlayerController->PlayerState->UpdatePing(ReceivedTimestamp - LastPingSent);
+
+					// The client doesn't answer to the server's ping, it starts a new round-trip only a second later to lower the network load
+					NetConnection.GetWorld()->GetTimerManager().SetTimer(PongTimerHandle, [this](){
+							SendPingOrPong(SpatialConstants::CLIENT_PONG_COMPONENT_ID);
+						}, 1.f, false);
+				}
 			}
 			else
 			{
-				UE_LOG(LogTemp, Warning, TEXT("LatencyManager::Enable(%s) PlayerState is nullptr"), *NetConnection.PlayerController->GetName());
+				UE_LOG(LogSpatialLatencyManager, Warning, TEXT("[%s] PlayerState is nullptr"), *NetConnection.PlayerController->GetName());
 			}
 		}
 	});
@@ -64,6 +79,8 @@ void LatencyManager::Enable(Worker_EntityId InPlayerControllerEntity)
 void LatencyManager::Disable()
 {
 	PlayerControllerEntity = SpatialConstants::INVALID_ENTITY_ID;
+
+	NetConnection.GetWorld()->GetTimerManager().ClearTimer(PongTimerHandle);
 }
 
 void LatencyManager::SendPingOrPong(Worker_ComponentId ComponentId)
@@ -76,8 +93,10 @@ void LatencyManager::SendPingOrPong(Worker_ComponentId ComponentId)
 	Schema_AddObject(EventsObject, SpatialConstants::PING_PONG_EVENT_ID);
 
 	USpatialWorkerConnection* WorkerConnection = NetDriver.Connection;
-	if (WorkerConnection->IsConnected())
+	if (NetDriver.IsValidLowLevel() && WorkerConnection && WorkerConnection->IsConnected())
 	{
+		UE_LOG(LogSpatialLatencyManager, Verbose, TEXT("SendPingOrPong(%s)"), NetDriver.IsServer() ? TEXT("server") : TEXT("client"));
+
 		WorkerConnection->SendComponentUpdate(PlayerControllerEntity, &ComponentUpdate);
 		LastPingSent = NetConnection.GetWorld()->RealTimeSeconds;
 	}
