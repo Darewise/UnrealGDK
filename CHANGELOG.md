@@ -10,6 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Visual Studio 2019 is now supported.
 - Added Ping metric to `stat net` view. You can now see your latency from your client to the authoritative server worker. This measurement includes processing time on the client and server, as such the tick rate of your server worker will be reflected in your ping.
 
+## [`0.6.2`] - 2019-10-10
+
+- The GDK no longer relies on an ordering of entity and interest queries that is not guaranteed by the SpatialOS runtime.
+- The multiserver offloading tutorial has been simplified and re-factored.
+
 ## [`0.6.1`] - 2019-08-15
 
 ### Features:
