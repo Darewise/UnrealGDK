@@ -322,6 +322,10 @@ public:
 	UPROPERTY(EditAnywhere, config, Category = "Local Workflow", meta = (ConfigRestartRequired = false, DisplayName = "IP Address Dedicated Server"))
 	FString LocalWorflowServerIpAddr;
 
+	/** Use UE4Editor for local workflow instead of the real Dedicated Server & Networked Client executable. Useful for programmers to iterate quicker. */
+	UPROPERTY(EditAnywhere, config, Category = "Local Workflow", meta = (ConfigRestartRequired = false, DisplayName = "Local Workflow use UE4Editor"))
+	bool bLocalWorkflowUseUE4Editor;
+
 	// CORVUS_END
 
 	FORCEINLINE FString GetGDKPluginDirectory() const

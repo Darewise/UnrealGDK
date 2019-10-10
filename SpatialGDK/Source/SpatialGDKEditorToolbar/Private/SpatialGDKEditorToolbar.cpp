@@ -1160,18 +1160,23 @@ FText FSpatialGDKEditorToolbarModule::CookMapTooltip() const
 
 void FSpatialGDKEditorToolbarModule::LaunchDedicatedServer()
 {
+	static const FString ProjectPath = FPaths::ConvertRelativePathToFull(FPaths::GetProjectFilePath());
 	static const FString WorkingDir = FPaths::ConvertRelativePathToFull(FPaths::ProjectDir());
 	static const FString ServerPath = WorkingDir / TEXT("Binaries/Win64/CorvusServer.exe");
+	static const FString EngineDir = FPaths::ConvertRelativePathToFull(FPaths::EngineDir());
+	static const FString EditorPath = EngineDir / TEXT("Binaries/Win64/UE4Editor.exe");
+
 	const FString CurrentLevelName = UGameplayStatics::GetCurrentLevelName(GEditor->GetEditorWorldContext().World());
 	const USpatialGDKEditorSettings* Settings = GetDefault<USpatialGDKEditorSettings>();
 	const FString CommandLineFlags = Settings->LocalWorflowServerCommandLineFlags;
+	const bool bLocalWorkflowUseUE4Editor = Settings->bLocalWorkflowUseUE4Editor;
 
 	// Launch the real dedicated server executable
 	const FString CommandLineArgs = FString::Printf(
-		TEXT("%s +appName corvus +projectName corvus +deploymentName corvus_local_workflow +workerType UnrealWorker +useExternalIpForBridge true -messaging -SessionName=\"Local Workflow UnrealWorker Server\" -log -nopauseonsuccess -NoVerifyGC %s"),
-		*CurrentLevelName, *CommandLineFlags);
+		TEXT("%s %s -server +appName corvus +projectName corvus +deploymentName corvus_local_workflow +workerType UnrealWorker +useExternalIpForBridge true -messaging -SessionName=\"Local Workflow UnrealWorker Server\" -log -nopauseonsuccess -NoVerifyGC %s"),
+		*ProjectPath, *CurrentLevelName, *CommandLineFlags);
 
-	ServerProcessHandle = UnrealUtils::LaunchProcess(ServerPath, CommandLineArgs, WorkingDir);
+	ServerProcessHandle = UnrealUtils::LaunchProcess(bLocalWorkflowUseUE4Editor ? EditorPath : ServerPath, CommandLineArgs, WorkingDir);
 
 	UnrealUtils::DisplayNotification(ServerProcessHandle.IsValid()
 		? FString::Printf(TEXT("Dedicated Server Starting on %s..."), *CurrentLevelName)
@@ -1195,29 +1200,36 @@ FText FSpatialGDKEditorToolbarModule::LaunchDedicatedServerTooltip() const
 		return LOCTEXT("SpatialOsNotRunning_Tooltip", "SpatialOS is not running.");
 	else if (ServerProcessHandle.IsValid())
 		return LOCTEXT("DedicatedServerRunning_Tooltip", "Dedicated Server is running.");
+	else if (GetDefault<USpatialGDKEditorSettings>()->bLocalWorkflowUseUE4Editor)
+		return LOCTEXT("LaunchNetworkedClient_Tooltip", "Launch a dedicated server worker in a new process.\nUses the Unreal Editor executable.");
 	else
-		return LOCTEXT("LaunchDedicatedServer_Tooltip", "Launch a dedicated server worker.\nUses the final server executable in a new process.");
+		return LOCTEXT("LaunchDedicatedServer_Tooltip", "Launch a dedicated server worker in a new process.\nUses the final server executable.");
 }
 
 void FSpatialGDKEditorToolbarModule::LaunchNetworkedClient()
 {
+	static const FString ProjectPath = FPaths::ConvertRelativePathToFull(FPaths::GetProjectFilePath());
 	static const FString WorkingDir = FPaths::ConvertRelativePathToFull(FPaths::ProjectDir());
 	static const FString ClientPath = WorkingDir / TEXT("Binaries/Win64/Corvus.exe");
+	static const FString EngineDir = FPaths::ConvertRelativePathToFull(FPaths::EngineDir());
+	static const FString EditorPath = EngineDir / TEXT("Binaries/Win64/UE4Editor.exe");
+
 	const USpatialGDKEditorSettings* Settings = GetDefault<USpatialGDKEditorSettings>();
 	const FString ServerIpAddr = Settings->LocalWorflowServerIpAddr.IsEmpty() ? TEXT("127.0.0.1") : Settings->LocalWorflowServerIpAddr;
 	const FString CommandLineFlags = Settings->LocalWorflowClientCommandLineFlags;
+	const bool bLocalWorkflowUseUE4Editor = Settings->bLocalWorkflowUseUE4Editor;
 
 	const FString CommandLineArgs = FString::Printf(
-		TEXT("%s +appName corvus +projectName corvus +deploymentName corvus_local_workflow +workerType UnrealClient +useExternalIpForBridge true -messaging -SessionName=\"Local Workflow UnrealClient\" -log -NoVerifyGC %s"),
-		*ServerIpAddr, *CommandLineFlags);
+		TEXT("%s %s -game +appName corvus +projectName corvus +deploymentName corvus_local_workflow +workerType UnrealClient +useExternalIpForBridge true -messaging -SessionName=\"Local Workflow UnrealClient\" -log -NoVerifyGC %s"),
+		*ProjectPath, *ServerIpAddr, *CommandLineFlags);
 
-	FProcHandle clientProcessHandle = UnrealUtils::LaunchProcess(ClientPath, CommandLineArgs, WorkingDir);
+	FProcHandle ClientProcessHandle = UnrealUtils::LaunchProcess(bLocalWorkflowUseUE4Editor ? EditorPath : ClientPath, CommandLineArgs, WorkingDir);
 
-	UnrealUtils::DisplayNotification(clientProcessHandle.IsValid()
+	UnrealUtils::DisplayNotification(ClientProcessHandle.IsValid()
 		? FString::Printf(TEXT("Network Client Starting on %s..."), *ServerIpAddr)
 		: TEXT("Failed to start Network Client"),
-		clientProcessHandle.IsValid());
-	FPlatformProcess::CloseProc(clientProcessHandle);
+		ClientProcessHandle.IsValid());
+	FPlatformProcess::CloseProc(ClientProcessHandle);
 }
 
 bool FSpatialGDKEditorToolbarModule::CanLaunchNetworkedClient() const
@@ -1236,8 +1248,10 @@ FText FSpatialGDKEditorToolbarModule::LaunchNetworkedClientTooltip() const
 		return LOCTEXT("SpatialOsNotRunning_Tooltip", "SpatialOS is not running.");
 	else if (!ServerProcessHandle.IsValid())
 		return LOCTEXT("DedicatedServerNotRunning_Tooltip", "Dedicated server is not running.");
+	else if (GetDefault<USpatialGDKEditorSettings>()->bLocalWorkflowUseUE4Editor)
+		return LOCTEXT("LaunchNetworkedClient_Tooltip", "Launch a networked client in a new process.\nUses the Unreal Editor executable.");
 	else
-		return LOCTEXT("LaunchNetworkedClient_Tooltip", "Launch a networked client.\nUses the final game client executable in a new process.");
+		return LOCTEXT("LaunchNetworkedClient_Tooltip", "Launch a networked client in a new process.\nUses the final game client executable.");
 }
 
 void FSpatialGDKEditorToolbarModule::ExploreDedicatedServerLogs() const
