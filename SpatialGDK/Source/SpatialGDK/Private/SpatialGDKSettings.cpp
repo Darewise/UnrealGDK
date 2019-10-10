@@ -21,7 +21,7 @@ USpatialGDKSettings::USpatialGDKSettings(const FObjectInitializer& ObjectInitial
 	, EntityCreationRateLimit(0)
 	, OpsUpdateRate(1000.0f)
 	, bEnableHandover(true)
-	, MaxNetCullDistanceSquared(900000000.0f) // Set to twice the default Actor NetCullDistanceSquared (300m)
+	, MaxNetCullDistanceSquared(10000000000.0f) // 1km
 	, QueuedIncomingRPCWaitTime(1.0f)
 	, bUsingQBI(true)
 	, PositionUpdateFrequency(1.0f)
