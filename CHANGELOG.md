@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Features:
 - Visual Studio 2019 is now supported.
 - Added Ping metric to `stat net` view. You can now see your latency from your client to the authoritative server worker. This measurement includes processing time on the client and server, as such the tick rate of your server worker will be reflected in your ping.
+- The initial connection from a worker will attempt to use relevant command line arguments (receptionistHost, locatorHost) to inform the connection. If these are not provided the standard connection flow will be followed. Subsequent connections will not use command line arguments.
+- The command "Open 0.0.0.0" can be used to connect a worker using its command line arguments, simulating initial connection.
+- The command "ConnectToLocator <login> <playerToken>" has been added to allow for explicit connections to deployments.
 
 ## [`0.6.3`] - 2019-12-05
 ### Bug fixes: 
@@ -19,6 +22,8 @@ Features listed in the internal section are not ready to use but, in the spirit 
 - The GDK is now compatible with the `CN` launch region. When Improbable's online services are fully working in China, they will work with this version of the GDK. You will be able to create SpatialOS Deployments in China by specifying the `CN` region in the Deployment Launcher.
 - `Setup.bat` and `Setup.sh` both accept the `--china` flag, which will be required in order to run SpatialOS CLI commands in the `CN` region.
 - **SpatialOS GDK for Unreal** > **Editor Settings** now contains a **Region Settings** section. You will be required to set **Region where services are located** to `CN` in order to create SpatialOS Deployments in China.
+- The command line argument "receptionistHost <URL>" will now not overide connections to "127.0.0.1".
+- The receptionist will now be used for appropriate URLs after connecting to a locator URL.
 
 ## [`0.6.2`] - 2019-10-10
 

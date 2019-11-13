@@ -23,6 +23,7 @@ class USpatialNetConnection;
 class USpatialPackageMapClient;
 
 class USpatialWorkerConnection;
+class USpatialGameInstance;
 class USpatialDispatcher;
 class USpatialSender;
 class USpatialReceiver;
@@ -187,6 +188,8 @@ private:
 
 	FString SnapshotToLoad;
 
+	class USpatialGameInstance* GetGameInstance() const;
+
 	void InitiateConnectionToSpatialOS(const FURL& URL);
 
 	void InitializeSpatialOutputDevice();
@@ -241,4 +244,8 @@ private:
 #if !UE_BUILD_SHIPPING
 	int32 ConsiderListSize = 0;
 #endif
+
+	void StartSetupConnectionConfigFromCommandLine(bool& bOutSuccessfullyLoaded, bool& bOutUseReceptionist);
+	void StartSetupConnectionConfigFromURL(const FURL& URL, bool& bOutUseReceptionist);
+	void FinishSetupConnectionConfig(const FURL& URL, bool bUseReceptionist);
 };
