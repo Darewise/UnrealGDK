@@ -140,6 +140,7 @@ void FSpatialGDKEditorToolbarModule::Tick(float DeltaTime)
 {
 	// CORVUS_BEGIN
 	UnrealUtils::UpdateProcessHandle(ServerProcessHandle);
+	UnrealUtils::UpdateProcessHandle(AIServerProcessHandle);
 	if (CookMapProcess.IsValid() && !CookMapProcess->Update())
 	{
 		CookMapProcess.Reset();
@@ -1221,6 +1222,21 @@ void FSpatialGDKEditorToolbarModule::LaunchDedicatedServer()
 		? FString::Printf(TEXT("Dedicated Server Starting on %s..."), *CurrentLevelName)
 		: TEXT("Failed to start Dedicated Server"),
 		ServerProcessHandle.IsValid());
+
+	// Launch the AI worker server executable
+	if (GetDefault<USpatialGDKSettings>()->bEnableOffloading)
+	{
+		const FString AICommandLineArgs = FString::Printf(
+			TEXT("%s %s -server +appName corvus +projectName corvus +deploymentName corvus_local_workflow +workerType AIWorker +useExternalIpForBridge true -messaging -SessionName=\"Local Workflow AIWorker Server\" -log -nopauseonsuccess -NoVerifyGC %s"),
+			*ProjectPath, *CurrentLevelName, *CommandLineFlags);
+
+		AIServerProcessHandle = UnrealUtils::LaunchProcess(bLocalWorkflowUseUE4Editor ? EditorPath : ServerPath, AICommandLineArgs, WorkingDir);
+
+		UnrealUtils::DisplayNotification(AIServerProcessHandle.IsValid()
+			? FString::Printf(TEXT("AI Worker Starting on %s..."), *CurrentLevelName)
+			: TEXT("Failed to start AI Worker"),
+			AIServerProcessHandle.IsValid());
+	}
 }
 
 bool FSpatialGDKEditorToolbarModule::CanLaunchDedicatedServer() const

@@ -137,6 +137,7 @@ private:
 
 	// CORVUS_BEGIN Local Workflow
 	FProcHandle ServerProcessHandle;
+	FProcHandle AIServerProcessHandle;
 	TSharedPtr<FMonitoredProcess> CookMapProcess;
 	TSharedPtr<FMonitoredProcess> PackageClientProcess;
 	// CORVUS_END
