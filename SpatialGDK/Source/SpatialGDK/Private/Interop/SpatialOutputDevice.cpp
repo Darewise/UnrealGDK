@@ -30,6 +30,16 @@ void FSpatialOutputDevice::Serialize(const TCHAR* InData, ELogVerbosity::Type Ve
 		return;
 	}
 
+#if UE_GAME
+	// CORVUS_BEGIN: Game clients shall not send too many Warnings to SpatialOS to avoid overflowing the network & Entity database (see tickets GCS-1512 & GCS-1566)
+	static int WarningCount = 0;
+	if (Verbosity == ELogVerbosity::Warning && ++WarningCount > 200)
+	{
+		return;
+	}
+#endif
+	// CORVUS_END
+
 	if (bLogToSpatial && Connection != nullptr)
 	{
 #if WITH_EDITOR
