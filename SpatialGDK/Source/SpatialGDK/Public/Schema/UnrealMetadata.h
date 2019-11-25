@@ -85,10 +85,16 @@ struct UnrealMetadata : Component
 		{
 			Class = FindObject<UClass>(nullptr, *ClassPath, false);
 		}
-		else
+
+		//CORVUS_BEGIN
+
+		// This "if(!Class)" used to be an "else" - CL 38494
+		if (!Class)
 		{
 			Class = LoadObject<UClass>(nullptr, *ClassPath);
 		}
+
+		//CORVUS_END
 
 		if (Class != nullptr && Class->IsChildOf<AActor>())
 		{
