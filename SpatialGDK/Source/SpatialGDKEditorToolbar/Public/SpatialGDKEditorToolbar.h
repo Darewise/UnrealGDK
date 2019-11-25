@@ -66,6 +66,8 @@ private:
 	bool StopSpatialDeploymentIsVisible() const;
 	bool StopSpatialDeploymentCanExecute() const;
 
+	bool LaunchInspectorCanExecute() const;
+
 	bool StartSpatialServiceIsVisible() const;
 	bool StartSpatialServiceCanExecute() const;
 
@@ -97,10 +99,12 @@ private:
 	FText PackageNetworkedClientTooltip() const;
 
 	void ShowSimulatedPlayerDeploymentDialog();
-
+	bool ShowDeploymentDialogIsVisible() const;
 private:
 	bool CanExecuteSchemaGenerator() const;
+	bool GenericSpatialOSIsVisible() const;
 	bool CanExecuteSnapshotGenerator() const;
+	bool CreateSnapshotIsVisible() const;
 
 	TSharedRef<SWidget> CreateGenerateSchemaMenuContent();
 

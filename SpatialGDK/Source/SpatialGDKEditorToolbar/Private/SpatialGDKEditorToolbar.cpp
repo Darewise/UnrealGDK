@@ -154,9 +154,19 @@ bool FSpatialGDKEditorToolbarModule::CanExecuteSchemaGenerator() const
 	return SpatialGDKEditorInstance.IsValid() && !SpatialGDKEditorInstance.Get()->IsSchemaGeneratorRunning() && !LocalDeploymentManager->IsLocalDeploymentRunning() && !CookMapProcess.IsValid();
 }
 
+bool FSpatialGDKEditorToolbarModule::GenericSpatialOSIsVisible() const
+{
+	return GetDefault<UGeneralProjectSettings>()->bSpatialNetworking;
+}
+
 bool FSpatialGDKEditorToolbarModule::CanExecuteSnapshotGenerator() const
 {
 	return SpatialGDKEditorInstance.IsValid() && !SpatialGDKEditorInstance.Get()->IsSchemaGeneratorRunning();
+}
+
+bool FSpatialGDKEditorToolbarModule::CreateSnapshotIsVisible() const
+{
+	return GetDefault<UGeneralProjectSettings>()->bSpatialNetworking && GetDefault<USpatialGDKEditorSettings>()->bShowCreateSpatialSnapshot;
 }
 
 void FSpatialGDKEditorToolbarModule::MapActions(TSharedPtr<class FUICommandList> InPluginCommands)
@@ -164,17 +174,23 @@ void FSpatialGDKEditorToolbarModule::MapActions(TSharedPtr<class FUICommandList>
 	InPluginCommands->MapAction(
 		FSpatialGDKEditorToolbarCommands::Get().CreateSpatialGDKSchema,
 		FExecuteAction::CreateRaw(this, &FSpatialGDKEditorToolbarModule::SchemaGenerateButtonClicked),
-		FCanExecuteAction::CreateRaw(this, &FSpatialGDKEditorToolbarModule::CanExecuteSchemaGenerator));
-
+		FCanExecuteAction::CreateRaw(this, &FSpatialGDKEditorToolbarModule::CanExecuteSchemaGenerator),
+		FIsActionChecked(),
+		FIsActionButtonVisible::CreateRaw(this, &FSpatialGDKEditorToolbarModule::GenericSpatialOSIsVisible));
+	
 	InPluginCommands->MapAction(
 		FSpatialGDKEditorToolbarCommands::Get().CreateSpatialGDKSchemaFull,
 		FExecuteAction::CreateRaw(this, &FSpatialGDKEditorToolbarModule::SchemaGenerateFullButtonClicked),
-		FCanExecuteAction::CreateRaw(this, &FSpatialGDKEditorToolbarModule::CanExecuteSchemaGenerator));
+		FCanExecuteAction::CreateRaw(this, &FSpatialGDKEditorToolbarModule::CanExecuteSchemaGenerator),
+		FIsActionChecked(),
+		FIsActionButtonVisible::CreateRaw(this, &FSpatialGDKEditorToolbarModule::GenericSpatialOSIsVisible));
 
 	InPluginCommands->MapAction(
 		FSpatialGDKEditorToolbarCommands::Get().CreateSpatialGDKSnapshot,
 		FExecuteAction::CreateRaw(this, &FSpatialGDKEditorToolbarModule::CreateSnapshotButtonClicked),
-		FCanExecuteAction::CreateRaw(this, &FSpatialGDKEditorToolbarModule::CanExecuteSnapshotGenerator));
+		FCanExecuteAction::CreateRaw(this, &FSpatialGDKEditorToolbarModule::CanExecuteSnapshotGenerator),
+		FIsActionChecked(),
+		FIsActionButtonVisible::CreateRaw(this, &FSpatialGDKEditorToolbarModule::CreateSnapshotIsVisible));
 
 	InPluginCommands->MapAction(
 		FSpatialGDKEditorToolbarCommands::Get().StartSpatialDeployment,
@@ -193,13 +209,17 @@ void FSpatialGDKEditorToolbarModule::MapActions(TSharedPtr<class FUICommandList>
 	InPluginCommands->MapAction(
 		FSpatialGDKEditorToolbarCommands::Get().LaunchInspectorWebPageAction,
 		FExecuteAction::CreateRaw(this, &FSpatialGDKEditorToolbarModule::LaunchInspectorWebpageButtonClicked),
-		FCanExecuteAction());
+		FCanExecuteAction::CreateRaw(this, &FSpatialGDKEditorToolbarModule::LaunchInspectorCanExecute),
+		FCanExecuteAction(),
+		FIsActionButtonVisible::CreateRaw(this, &FSpatialGDKEditorToolbarModule::GenericSpatialOSIsVisible));
 
 	InPluginCommands->MapAction(
 		FSpatialGDKEditorToolbarCommands::Get().OpenSimulatedPlayerConfigurationWindowAction,
 		FExecuteAction::CreateRaw(this, &FSpatialGDKEditorToolbarModule::ShowSimulatedPlayerDeploymentDialog),
-		FCanExecuteAction());
-	
+		FCanExecuteAction(),
+		FIsActionChecked(),
+		FIsActionButtonVisible::CreateRaw(this, &FSpatialGDKEditorToolbarModule::ShowDeploymentDialogIsVisible));
+
 	InPluginCommands->MapAction(
 		FSpatialGDKEditorToolbarCommands::Get().StartSpatialService,
 		FExecuteAction::CreateRaw(this, &FSpatialGDKEditorToolbarModule::StartSpatialServiceButtonClicked),
@@ -269,11 +289,11 @@ void FSpatialGDKEditorToolbarModule::AddToolbarExtension(FToolBarBuilder& Builde
 		FSlateIcon(FEditorStyle::GetStyleSetName(), "GDK.Schema"),
 		true
 	);
-	// Builder.AddToolBarButton(FSpatialGDKEditorToolbarCommands::Get().CreateSpatialGDKSnapshot); // CORVUS: no more usage for snapshots since release-0.2.0!
+	Builder.AddToolBarButton(FSpatialGDKEditorToolbarCommands::Get().CreateSpatialGDKSnapshot);
 	Builder.AddToolBarButton(FSpatialGDKEditorToolbarCommands::Get().StartSpatialDeployment);
 	Builder.AddToolBarButton(FSpatialGDKEditorToolbarCommands::Get().StopSpatialDeployment);
 	Builder.AddToolBarButton(FSpatialGDKEditorToolbarCommands::Get().LaunchInspectorWebPageAction);
-	// Builder.AddToolBarButton(FSpatialGDKEditorToolbarCommands::Get().OpenSimulatedPlayerConfigurationWindowAction); // CORVUS: too dangerous to expose
+	Builder.AddToolBarButton(FSpatialGDKEditorToolbarCommands::Get().OpenSimulatedPlayerConfigurationWindowAction);
 	Builder.AddToolBarButton(FSpatialGDKEditorToolbarCommands::Get().StartSpatialService);
 	Builder.AddToolBarButton(FSpatialGDKEditorToolbarCommands::Get().StopSpatialService);
 
@@ -742,11 +762,11 @@ bool FSpatialGDKEditorToolbarModule::StartSpatialDeploymentIsVisible() const
 {
 	if (LocalDeploymentManager->IsSpatialServiceRunning())
 	{
-		return !LocalDeploymentManager->IsLocalDeploymentRunning();
+		return GetDefault<UGeneralProjectSettings>()->bSpatialNetworking && !LocalDeploymentManager->IsLocalDeploymentRunning();
 	}
 	else
 	{
-		return true;
+		return GetDefault<UGeneralProjectSettings>()->bSpatialNetworking;
 	}
 }
 
@@ -765,11 +785,16 @@ bool FSpatialGDKEditorToolbarModule::StopSpatialDeploymentCanExecute() const
 	return !LocalDeploymentManager->IsDeploymentStopping() && !CookMapProcess.IsValid();
 }
 
+bool FSpatialGDKEditorToolbarModule::LaunchInspectorCanExecute() const
+{
+	return LocalDeploymentManager->IsLocalDeploymentRunning();
+}
+
 bool FSpatialGDKEditorToolbarModule::StartSpatialServiceIsVisible() const
 {
 	const USpatialGDKEditorSettings* SpatialGDKSettings = GetDefault<USpatialGDKEditorSettings>();
 
-	return SpatialGDKSettings->bShowSpatialServiceButton && !LocalDeploymentManager->IsSpatialServiceRunning();
+	return GetDefault<UGeneralProjectSettings>()->bSpatialNetworking && SpatialGDKSettings->bShowSpatialServiceButton && !LocalDeploymentManager->IsSpatialServiceRunning();
 }
 
 bool FSpatialGDKEditorToolbarModule::StartSpatialServiceCanExecute() const
@@ -781,7 +806,7 @@ bool FSpatialGDKEditorToolbarModule::StopSpatialServiceIsVisible() const
 {
 	const USpatialGDKEditorSettings* SpatialGDKSettings = GetDefault<USpatialGDKEditorSettings>();
 
-	return SpatialGDKSettings->bShowSpatialServiceButton && LocalDeploymentManager->IsSpatialServiceRunning();
+	return GetDefault<UGeneralProjectSettings>()->bSpatialNetworking && SpatialGDKSettings->bShowSpatialServiceButton && LocalDeploymentManager->IsSpatialServiceRunning();
 }
 
 bool FSpatialGDKEditorToolbarModule::StopSpatialServiceCanExecute() const
@@ -851,6 +876,11 @@ void FSpatialGDKEditorToolbarModule::ShowSimulatedPlayerDeploymentDialog()
 	TSharedPtr<SWindow> RootWindow = FGlobalTabmanager::Get()->GetRootWindow();
 
 	FSlateApplication::Get().AddModalWindow(SimulatedPlayerDeploymentWindowPtr.ToSharedRef(), RootWindow);
+}
+
+bool FSpatialGDKEditorToolbarModule::ShowDeploymentDialogIsVisible() const
+{
+	return GetDefault<UGeneralProjectSettings>()->bSpatialNetworking && GetDefault<USpatialGDKEditorSettings>()->bShowDeploymentDialog;
 }
 
 bool FSpatialGDKEditorToolbarModule::GenerateDefaultLaunchConfig(const FString& LaunchConfigPath) const
@@ -1187,16 +1217,16 @@ void FSpatialGDKEditorToolbarModule::LaunchDedicatedServer()
 bool FSpatialGDKEditorToolbarModule::CanLaunchDedicatedServer() const
 {
 	// Can launch dedicated server only if cooking is not running
-	// Can launch dedicated server only if SpatialOS is running
+	// Can launch dedicated server only if SpatialOS is running OR is not used
 	// Can launch dedicated server only if not already running
-	return !CookMapProcess.IsValid() && LocalDeploymentManager->IsLocalDeploymentRunning() && !ServerProcessHandle.IsValid();
+	return !CookMapProcess.IsValid() && (LocalDeploymentManager->IsLocalDeploymentRunning() || !GetDefault<UGeneralProjectSettings>()->bSpatialNetworking) && !ServerProcessHandle.IsValid();
 }
 
 FText FSpatialGDKEditorToolbarModule::LaunchDedicatedServerTooltip() const
 {
 	if (CookMapProcess.IsValid())
 		return LOCTEXT("CookMapRunning_Tooltip", "Cooking map in progress.");
-	else if (!LocalDeploymentManager->IsLocalDeploymentRunning())
+	else if (!LocalDeploymentManager->IsLocalDeploymentRunning() && GetDefault<UGeneralProjectSettings>()->bSpatialNetworking)
 		return LOCTEXT("SpatialOsNotRunning_Tooltip", "SpatialOS is not running.");
 	else if (ServerProcessHandle.IsValid())
 		return LOCTEXT("DedicatedServerRunning_Tooltip", "Dedicated Server is running.");
@@ -1235,16 +1265,16 @@ void FSpatialGDKEditorToolbarModule::LaunchNetworkedClient()
 bool FSpatialGDKEditorToolbarModule::CanLaunchNetworkedClient() const
 {
 	// Can launch networked client only if cooking is not running
-	// Can launch networked client only if SpatialOS is running
+	// Can launch networked client only if SpatialOS is running OR is not used
 	// Can launch networked client only with the dedicated server running
-	return !CookMapProcess.IsValid() && LocalDeploymentManager->IsLocalDeploymentRunning() && ServerProcessHandle.IsValid();
+	return !CookMapProcess.IsValid() && (LocalDeploymentManager->IsLocalDeploymentRunning() || !GetDefault<UGeneralProjectSettings>()->bSpatialNetworking) && ServerProcessHandle.IsValid();
 }
 
 FText FSpatialGDKEditorToolbarModule::LaunchNetworkedClientTooltip() const
 {
 	if (CookMapProcess.IsValid())
 		return LOCTEXT("CookMapRunning_Tooltip", "Cooking map in progress.");
-	else if (!LocalDeploymentManager->IsLocalDeploymentRunning())
+	else if (!LocalDeploymentManager->IsLocalDeploymentRunning() && GetDefault<UGeneralProjectSettings>()->bSpatialNetworking)
 		return LOCTEXT("SpatialOsNotRunning_Tooltip", "SpatialOS is not running.");
 	else if (!ServerProcessHandle.IsValid())
 		return LOCTEXT("DedicatedServerNotRunning_Tooltip", "Dedicated server is not running.");

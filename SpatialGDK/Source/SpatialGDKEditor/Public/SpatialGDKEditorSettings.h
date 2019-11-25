@@ -234,6 +234,14 @@ public:
 	UPROPERTY(EditAnywhere, config, Category = "General", meta = (ConfigRestartRequired = false, DisplayName = "Show Spatial service button"))
 	bool bShowSpatialServiceButton;
 
+	/** If checked, show the Snapshot button on the GDK toolbar which can be used to generate a snapshot. */
+	UPROPERTY(EditAnywhere, config, Category = "General", meta = (ConfigRestartRequired = false, DisplayName = "Show Create Snapshot button"))
+	bool bShowCreateSpatialSnapshot;
+
+	/** If checked, show the Deploy button on the GDK toolbar which can be used to access the launch cloud deployment dialog. */
+	UPROPERTY(EditAnywhere, config, Category = "General", meta = (ConfigRestartRequired = false, DisplayName = "Show Open Deployment Dialog button"))
+	bool bShowDeploymentDialog;
+
 	/** Select to delete all a server-worker instance’s dynamically-spawned entities when the server-worker instance shuts down. If NOT selected, a new server-worker instance has all of these entities from the former server-worker instance’s session. */
 	UPROPERTY(EditAnywhere, config, Category = "Play in editor settings", meta = (ConfigRestartRequired = false, DisplayName = "Delete dynamically spawned entities"))
 	bool bDeleteDynamicEntities;
