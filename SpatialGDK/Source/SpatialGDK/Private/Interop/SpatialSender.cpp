@@ -485,7 +485,14 @@ void USpatialSender::CreateServerWorkerEntity(int AttemptCounter)
 
 	QueryConstraint Constraint;
 	// Ensure server worker receives the GSM entity
-	Constraint.EntityIdConstraint = SpatialConstants::INITIAL_GLOBAL_STATE_MANAGER_ENTITY_ID;
+	// IMPROBABLE-BEGIN - Temporary fix for AI Offloading until updating to GDK version 0.7.0
+	// This fix makes all servers aware of all entities which have a spatial position component. Without this change,
+	// offloaded workers will not be aware of entities on other servers, and will not be able to process RPCs from them.
+	// In 0.7.0, this code is moved around and fixed. In the future, more precise ways of defining entity interest
+	// will be implemented.
+	// Constraint.EntityIdConstraint = SpatialConstants::INITIAL_GLOBAL_STATE_MANAGER_ENTITY_ID;
+	Constraint.ComponentConstraint = SpatialConstants::POSITION_COMPONENT_ID;
+	// IMPROBABLE-END
 
 	Query Query;
 	Query.Constraint = Constraint;
