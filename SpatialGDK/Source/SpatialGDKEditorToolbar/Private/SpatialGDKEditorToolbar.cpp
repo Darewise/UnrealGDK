@@ -40,6 +40,8 @@
 #include "Misc/FileHelper.h"
 
 // CORVUS_BEGIN
+#include "CoreGlobals.h"
+#include "Misc/ConfigCacheIni.h"
 #include "Misc/MonitoredProcess.h"
 #include "Unreal/UnrealUtils.h"
 #include "UnrealEditorUtils.h"
@@ -332,7 +334,7 @@ TSharedRef<SWidget> FSpatialGDKEditorToolbarModule::GenerateComboMenu()
 		MenuBuilder.AddWidget(
 			SNew(STextBlock)
 			.ColorAndOpacity(FSlateColor::UseSubduedForeground())
-			.Text(LOCTEXT("LocalWorkflowTip", "Launch a dedicated server and game client (execute steps in order)."))
+			.Text(LOCTEXT("LocalWorkflowTip", "Launch a dedicated server and networked game client(s)\nPlease execute steps in order."))
 			.WrapTextAt(180),
 			FText::GetEmpty());
 		MenuBuilder.AddMenuEntry(
@@ -365,7 +367,6 @@ TSharedRef<SWidget> FSpatialGDKEditorToolbarModule::GenerateComboMenu()
 				FCanExecuteAction::CreateRaw(this, &FSpatialGDKEditorToolbarModule::CanLaunchDedicatedServer)
 			)
 		);
-
 		MenuBuilder.AddMenuEntry(
 			LOCTEXT("LaunchNetworkedClient", "Launch Networked Client"),
 			TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateRaw(this, &FSpatialGDKEditorToolbarModule::LaunchNetworkedClientTooltip)),
@@ -375,6 +376,10 @@ TSharedRef<SWidget> FSpatialGDKEditorToolbarModule::GenerateComboMenu()
 				FCanExecuteAction::CreateRaw(this, &FSpatialGDKEditorToolbarModule::CanLaunchNetworkedClient)
 			)
 		);
+	}
+	MenuBuilder.EndSection();
+	MenuBuilder.BeginSection(NAME_None);
+	{
 		MenuBuilder.AddMenuEntry(
 			LOCTEXT("ExploreDedicatedServerLogs", "Show Dedicated Server logs"),
 			LOCTEXT("ExploreDedicatedServerLogsToolTip", "Open File Explorer to show log files of the Dedicated Server"),
@@ -387,6 +392,10 @@ TSharedRef<SWidget> FSpatialGDKEditorToolbarModule::GenerateComboMenu()
 			FSlateIcon(FEditorStyle::GetStyleSetName(), "MessageLog.TabIcon"),
 			FUIAction(FExecuteAction::CreateRaw(this, &FSpatialGDKEditorToolbarModule::ExploreNetworkedClientLogs))
 		);
+	}
+	MenuBuilder.EndSection();
+	MenuBuilder.BeginSection(NAME_None);
+	{
 		MenuBuilder.AddMenuEntry(
 			LOCTEXT("PackageNetworkedClient", "Package Networked Client"),
 			TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateRaw(this, &FSpatialGDKEditorToolbarModule::PackageNetworkedClientTooltip)),
@@ -1315,19 +1324,32 @@ void FSpatialGDKEditorToolbarModule::PackageNetworkedClient()
 
 bool FSpatialGDKEditorToolbarModule::CanPackageNetworkedClient() const
 {
+	// Compare current & default map from settings to control the package of the network client: what matters is what the server loads
+	const FString CurrentLevelName = UGameplayStatics::GetCurrentLevelName(GEditor->GetEditorWorldContext().World());
+	FString ServerDefaultMap;
+	GConfig->GetString(TEXT("/Script/EngineSettings.GameMapsSettings"), TEXT("ServerDefaultMap"), ServerDefaultMap, GEngineIni);
+
 	// Can package networked client only if cooking is not running
 	// Can package networked client only if packaging not already in progress
-	return !CookMapProcess.IsValid() && !PackageClientProcess.IsValid();
+	// Can package networked client only if configured Server Default Map matches Current Level
+	return !CookMapProcess.IsValid() && !PackageClientProcess.IsValid() && ServerDefaultMap.EndsWith(CurrentLevelName);
 }
 
 FText FSpatialGDKEditorToolbarModule::PackageNetworkedClientTooltip() const
 {
+	// Compare current & default map from settings to control the package of the network client: what matters is what the server loads
+	const FString CurrentLevelName = UGameplayStatics::GetCurrentLevelName(GEditor->GetEditorWorldContext().World());
+	FString ServerDefaultMap;
+	GConfig->GetString(TEXT("/Script/EngineSettings.GameMapsSettings"), TEXT("ServerDefaultMap"), ServerDefaultMap, GEngineIni);
+
 	if (CookMapProcess.IsValid())
 		return LOCTEXT("CookMapRunning_Tooltip", "Cooking map in progress.");
 	else if (PackageClientProcess.IsValid())
 		return LOCTEXT("PackageNetworkedClientRunning_Tooltip", "Packaging client in progress.");
+	else if (!ServerDefaultMap.EndsWith(CurrentLevelName))
+		return LOCTEXT("WrongDefaultMap_Tooltip", "Server Default Map does not match current map. Set it properly in Project Settings.");
 	else
-		return LOCTEXT("PackageNetworkedClient_Tooltip", "Package a networked client for remote multi-player game.\nWill connect to the dedicated server at the current IP Address.");
+		return LOCTEXT("PackageNetworkedClient_Tooltip", "Package a networked client with Server Default Map for remote multi-player game.\nWill connect to the dedicated server at the current IP Address.");
 }
 
 // CORVUS_END
