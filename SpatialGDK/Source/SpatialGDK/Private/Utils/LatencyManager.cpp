@@ -92,12 +92,15 @@ void LatencyManager::SendPingOrPong(Worker_ComponentId ComponentId)
 	Schema_Object* EventsObject = Schema_GetComponentUpdateEvents(ComponentUpdate.schema_type);
 	Schema_AddObject(EventsObject, SpatialConstants::PING_PONG_EVENT_ID);
 
-	USpatialWorkerConnection* WorkerConnection = NetDriver.Connection;
-	if (NetDriver.IsValidLowLevel() && WorkerConnection && WorkerConnection->IsConnected())
+	if (NetDriver.IsValidLowLevel())
 	{
-		UE_LOG(LogSpatialLatencyManager, Verbose, TEXT("SendPingOrPong(%s)"), NetDriver.IsServer() ? TEXT("server") : TEXT("client"));
+		USpatialWorkerConnection* WorkerConnection = NetDriver.Connection;
+		if (WorkerConnection && WorkerConnection->IsConnected())
+		{
+			UE_LOG(LogSpatialLatencyManager, Verbose, TEXT("SendPingOrPong(%s)"), NetDriver.IsServer() ? TEXT("server") : TEXT("client"));
 
-		WorkerConnection->SendComponentUpdate(PlayerControllerEntity, &ComponentUpdate);
-		LastPingSent = NetConnection.GetWorld()->RealTimeSeconds;
+			WorkerConnection->SendComponentUpdate(PlayerControllerEntity, &ComponentUpdate);
+			LastPingSent = NetConnection.GetWorld()->RealTimeSeconds;
+		}
 	}
 }
