@@ -17,6 +17,8 @@ class FLocalDeploymentManager
 public:
 	FLocalDeploymentManager();
 
+	void SPATIALGDKSERVICES_API SetInChina(bool IsInChina);
+
 	void SPATIALGDKSERVICES_API RefreshServiceStatus();
 
 	bool SPATIALGDKSERVICES_API TryStartLocalDeployment(FString LaunchConfig, FString LaunchArgs);
@@ -85,4 +87,5 @@ private:
 
 	bool bRedeployRequired = false;
 	bool bAutoDeploy = false;
+	bool bIsInChina = false;
 };
