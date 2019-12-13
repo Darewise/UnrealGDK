@@ -4,14 +4,18 @@ All notable changes to the SpatialOS Game Development Kit for Unreal will be doc
 The format of this Changelog is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased-`x.y.z`] - 2019-xx-xx
-
-### Features:
+### Darewise Backported features:
 - Visual Studio 2019 is now supported.
 - Added Ping metric to `stat net` view. You can now see your latency from your client to the authoritative server worker. This measurement includes processing time on the client and server, as such the tick rate of your server worker will be reflected in your ping.
 - The initial connection from a worker will attempt to use relevant command line arguments (receptionistHost, locatorHost) to inform the connection. If these are not provided the standard connection flow will be followed. Subsequent connections will not use command line arguments.
 - The command "Open 0.0.0.0" can be used to connect a worker using its command line arguments, simulating initial connection.
 - The command "ConnectToLocator <login> <playerToken>" has been added to allow for explicit connections to deployments.
+
+## [Unreleased-`x.y.z`] - 2019-xx-xx
+
+## [`0.6.4`] - 2019-12-13
+### Bug fixes: 
+- The Inspector button in the SpatialOS GDK for Unreal toolbar now opens the correct URL.
 
 ## [`0.6.3`] - 2019-12-05
 ### Bug fixes: 
