@@ -396,9 +396,6 @@ void UGlobalStateManager::RegisterSingletonChannel(AActor* SingletonActor, USpat
 {
 	TPair<AActor*, USpatialActorChannel*>& ActorChannelPair = SingletonClassPathToActorChannels.FindOrAdd(SingletonActor->GetClass()->GetPathName());
 
-	check(ActorChannelPair.Key == nullptr || ActorChannelPair.Key == SingletonActor);
-	check(ActorChannelPair.Value == nullptr || ActorChannelPair.Value == SingletonChannel);
-
 	ActorChannelPair.Key = SingletonActor;
 	ActorChannelPair.Value = SingletonChannel;
 }
