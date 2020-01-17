@@ -89,7 +89,6 @@ bool FSpatialGDKEditor::GenerateSchema(bool bFullScan)
 	else
 	{
 		// CORVUS_BEGIN from GDK 0.3+
-		// TODO GDK: add a new Project Settings with a list of additional assets to load (like our Root Config Data Asset)
 		Schema::LoadDefaultGameModes();
 		// CORVUS_END
 	}
