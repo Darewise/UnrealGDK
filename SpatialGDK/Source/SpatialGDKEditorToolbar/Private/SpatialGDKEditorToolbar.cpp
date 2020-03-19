@@ -714,7 +714,7 @@ void FSpatialGDKEditorToolbarModule::VerifyAndStartDeployment()
 	// Don't try and start a local deployment if spatial networking is disabled.
 	if (!GetDefault<UGeneralProjectSettings>()->UsesSpatialNetworking())
 	{
-		UE_LOG(LogSpatialGDKEditorToolbar, Error, TEXT("Attempted to start a local deployment but spatial networking is disabled."));
+		UE_LOG(LogSpatialGDKEditorToolbar, Log, TEXT("Attempted to start a local deployment but spatial networking is disabled."));
 		return;
 	}
 
