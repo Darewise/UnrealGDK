@@ -160,6 +160,11 @@ void USpatialPlayerSpawner::ReceivePlayerSpawnResponseOnClient(const Worker_Comm
 	{
 		UE_LOG(LogSpatialPlayerSpawner, Error, TEXT("Player spawn request failed too many times. (%u attempts)"),
 			SpatialConstants::MAX_NUMBER_COMMAND_ATTEMPTS);
+		// CORVUS_BEGIN Force disconnection to avoid the game client being stuck on the login screen
+		UGameInstance* GameInstance = UGameplayStatics::GetGameInstance(NetDriver);
+		check(GameInstance);
+		GameInstance->ReturnToMainMenu();
+		// CORVUS_END
 	}
 }
 
