@@ -6,8 +6,8 @@
       "snapshotWritePeriodSeconds": 0
     },
     "dimensions": {
-      "xMeters": 300,
-      "zMeters": 300
+      "xMeters": 10000,
+      "zMeters": 10000
     }
   },
   "load_balancing": {
@@ -15,8 +15,8 @@
       {
         "layer": "SimulatedPlayerCoordinator",
         "rectangle_grid": {
-          "cols": 10,
-          "rows": 1
+          "cols": 4,
+          "rows": 4
         }
       }
     ]
