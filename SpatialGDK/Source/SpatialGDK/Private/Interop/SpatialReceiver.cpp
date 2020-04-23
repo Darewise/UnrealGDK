@@ -123,6 +123,15 @@ void USpatialReceiver::OnAddComponent(const Worker_AddComponentOp& Op)
 	UE_LOG(LogSpatialReceiver, Verbose, TEXT("AddComponent component ID: %u entity ID: %lld"),
 		Op.data.component_id, Op.entity_id);
 
+	// CORVUS_BEGIN - Spatial FIX GCS-1798 - SetOwner on a non possessed entity was not working.
+	// Remove all RemoveComponentOps that have already been received and have the same entityId and componentId as the AddComponentOp.
+	// TODO: This can probably be removed when spatial view is added.
+	QueuedRemoveComponentOps.RemoveAll([&Op](const Worker_RemoveComponentOp& RemoveComponentOp) {
+		return RemoveComponentOp.entity_id == Op.entity_id &&
+			RemoveComponentOp.component_id == Op.data.component_id;
+	});
+	// CORVUS_END - Spatial FIX GCS-1798
+
 	switch (Op.data.component_id)
 	{
 	case SpatialConstants::ENTITY_ACL_COMPONENT_ID:
