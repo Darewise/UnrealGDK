@@ -377,19 +377,25 @@ Worker_ComponentData USpatialSender::CreateLevelComponentData(AActor* Actor)
 
 void USpatialSender::SendAddComponent(USpatialActorChannel* Channel, UObject* Subobject, const FClassInfo& SubobjectInfo)
 {
-	FRepChangeState SubobjectRepChanges = Channel->CreateInitialRepChangeState(Subobject);
-	FHandoverChangeState SubobjectHandoverChanges = Channel->CreateInitialHandoverChangeState(SubobjectInfo);
-
-	ComponentFactory DataFactory(false, NetDriver);
-
-	TArray<Worker_ComponentData> SubobjectDatas = DataFactory.CreateComponentDatas(Subobject, SubobjectInfo, SubobjectRepChanges, SubobjectHandoverChanges);
-
-	for (Worker_ComponentData& ComponentData : SubobjectDatas)
+	// CORVUS_BEGIN fix for https://improbableio.atlassian.net/servicedesk/customer/portal/5/GCS-1832 Server crash on UActorChannel::FindOrCreateReplicator
+	// happening at worker restart after a previous server crash if at least one player controller was in game
+	if (Channel && Channel->Connection)
 	{
-		Connection->SendAddComponent(Channel->GetEntityId(), &ComponentData);
-	}
+		FRepChangeState SubobjectRepChanges = Channel->CreateInitialRepChangeState(Subobject);
+		FHandoverChangeState SubobjectHandoverChanges = Channel->CreateInitialHandoverChangeState(SubobjectInfo);
 
-	Channel->PendingDynamicSubobjects.Remove(TWeakObjectPtr<UObject>(Subobject));
+		ComponentFactory DataFactory(false, NetDriver);
+
+		TArray<Worker_ComponentData> SubobjectDatas = DataFactory.CreateComponentDatas(Subobject, SubobjectInfo, SubobjectRepChanges, SubobjectHandoverChanges);
+
+		for (Worker_ComponentData& ComponentData : SubobjectDatas)
+		{
+			Connection->SendAddComponent(Channel->GetEntityId(), &ComponentData);
+		}
+
+		Channel->PendingDynamicSubobjects.Remove(TWeakObjectPtr<UObject>(Subobject));
+	}
+	// CORVUS_END
 }
 
 void USpatialSender::GainAuthorityThenAddComponent(USpatialActorChannel* Channel, UObject* Object, const FClassInfo* Info)
