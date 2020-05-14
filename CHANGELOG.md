@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 **Note**: Since GDK for Unreal v0.8.0, the changelog is published in both English and Chinese. The Chinese version of each changelog is shown after its English version.<br>
 **注意**：自虚幻引擎开发套件 v0.8.0 版本起，其日志提供中英文两个版本。每个日志的中文版本都置于英文版本之后。
 
+- Fixed a bug when creating multiple dynamic subobjects at the same time, when they would fail to be created on clients.
+- OwnerOnly components are now properly replicated when gaining authority over an actor. Previously, they were sometimes only replicated when a value on them changed after already being authoritative.
+
 ## [`0.9.0`] - 2020-05-05
 
 ### New Known Issues:
