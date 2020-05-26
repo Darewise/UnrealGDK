@@ -553,7 +553,9 @@ void USpatialReceiver::HandleActorAuthority(const Worker_AuthorityChangeOp& Op)
 		return;
 	}
 
-	if (USpatialActorChannel* Channel = NetDriver->GetActorChannelByEntityId(Op.entity_id))
+	USpatialActorChannel* Channel = NetDriver->GetActorChannelByEntityId(Op.entity_id);
+
+	if (Channel != nullptr)
 	{
 		if (Op.component_id == SpatialConstants::POSITION_COMPONENT_ID)
 		{
@@ -606,7 +608,7 @@ void USpatialReceiver::HandleActorAuthority(const Worker_AuthorityChangeOp& Op)
 			{
 				const bool bDormantActor = (Actor->NetDormancy >= DORM_DormantAll);
 
-				if (IsValid(NetDriver->GetActorChannelByEntityId(Op.entity_id)) || bDormantActor)
+				if (IsValid(Channel) || bDormantActor)
 				{
 					Actor->Role = ROLE_Authority;
 					Actor->RemoteRole = ROLE_SimulatedProxy;
@@ -654,9 +656,9 @@ void USpatialReceiver::HandleActorAuthority(const Worker_AuthorityChangeOp& Op)
 			}
 			else if (Op.authority == WORKER_AUTHORITY_NOT_AUTHORITATIVE)
 			{
-				if (USpatialActorChannel* ActorChannel = NetDriver->GetActorChannelByEntityId(Op.entity_id))
+				if (Channel != nullptr)
 				{
-					ActorChannel->bCreatedEntity = false;
+					Channel->bCreatedEntity = false;
 				}
 
 				// With load-balancing enabled, we already set ROLE_SimulatedProxy and trigger OnAuthorityLost when we
@@ -684,9 +686,12 @@ void USpatialReceiver::HandleActorAuthority(const Worker_AuthorityChangeOp& Op)
 			{
 				if (UObject* Object = PendingSubobjectAttachment.Subobject.Get())
 				{
-					// TODO: UNR-664 - We should track the bytes sent here and factor them into channel saturation.
-					uint32 BytesWritten = 0;
-					Sender->SendAddComponentForSubobject(PendingSubobjectAttachment.Channel, Object, *PendingSubobjectAttachment.Info, BytesWritten);
+					if (IsValid(Channel))
+					{
+						// TODO: UNR-664 - We should track the bytes sent here and factor them into channel saturation.
+						uint32 BytesWritten = 0;
+						Sender->SendAddComponentForSubobject(Channel, Object, *PendingSubobjectAttachment.Info, BytesWritten);
+					}
 				}
 			}
 
@@ -695,12 +700,12 @@ void USpatialReceiver::HandleActorAuthority(const Worker_AuthorityChangeOp& Op)
 	}
 	else if (Op.component_id == SpatialConstants::GetClientAuthorityComponent(GetDefault<USpatialGDKSettings>()->UseRPCRingBuffer()))
 	{
-		if (USpatialActorChannel* ActorChannel = NetDriver->GetActorChannelByEntityId(Op.entity_id))
+		if (Channel != nullptr)
 		{
 			// Soft handover isn't supported currently.
 			if (Op.authority != WORKER_AUTHORITY_AUTHORITY_LOSS_IMMINENT)
 			{
-				ActorChannel->ClientProcessOwnershipChange(Op.authority == WORKER_AUTHORITY_AUTHORITATIVE);
+				Channel->ClientProcessOwnershipChange(Op.authority == WORKER_AUTHORITY_AUTHORITATIVE);
 			}
 		}
 
