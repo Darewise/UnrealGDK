@@ -90,6 +90,7 @@ private:
 	FText LoadSublevelsTooltip() const;
 	void CookMap();
 	bool CanCookMap() const;
+	FText CookMapLabel() const;
 	FText CookMapTooltip() const;
 	void LaunchDedicatedServer();
 	bool CanLaunchDedicatedServer() const;
@@ -99,6 +100,8 @@ private:
 	FText LaunchNetworkedClientTooltip() const;
 	void ExploreDedicatedServerLogs() const;
 	void ExploreNetworkedClientLogs();
+	void ShowSpatialSettings();
+	void ShowMapsSettings();
 	void PackageNetworkedClient();
 	bool CanPackageNetworkedClient() const;
 	FText PackageNetworkedClientTooltip() const;

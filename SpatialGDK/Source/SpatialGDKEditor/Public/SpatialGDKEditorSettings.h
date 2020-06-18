@@ -220,6 +220,32 @@ namespace ERegionCode
 	};
 }
 
+/**
+ * Enumerates build configurations.
+ * NOTE need to stay in sync with EBuildConfigurations::Type
+ */
+UENUM()
+enum class ELocalWorkflowConfig : uint8
+{
+	/** Unknown build configuration. */
+	Unknown UMETA(Hidden),
+
+	/** Debug build. */
+	Debug UMETA(Hidden),
+
+	/** DebugGame build. */
+	DebugGame,
+
+	/** Development build. */
+	Development,
+
+	/** Shipping build. */
+	Shipping,
+
+	/** Test build. */
+	Test 
+};
+
 UCLASS(config = SpatialGDKEditorSettings, defaultconfig)
 class SPATIALGDKEDITOR_API USpatialGDKEditorSettings : public UObject
 {
@@ -337,21 +363,31 @@ public:
 
 	// CORVUS_BEGIN
 
-	/** Additional command line flags passed in to the Dedicated Server in Local Workflow. */
-	UPROPERTY(EditAnywhere, config, Category = "Local Workflow", meta = (ConfigRestartRequired = false, DisplayName = "Command line flags for Dedicated Server"))
-	FString LocalWorflowServerCommandLineFlags;
+	/** Cook also build (compile) the the Dedicated Server & Networked Client executables. Useful for programmers. */
+	UPROPERTY(EditAnywhere, config, Category = "Local Workflow", meta = (ConfigRestartRequired = false, DisplayName = "Cook Build Executables"))
+	bool bLocalWorkflowCookBuild;
 
-	/** Additional command line flags passed in to the Networked Client in Local Workflow. By default "-windowed -ResX=960 -ResY=540". */
+	/** Additional command line flags passed in to BuildCookRun for Local Workflow (eg -iterativecooking -pak -compressed etc.). */
+	UPROPERTY(EditAnywhere, config, Category = "Local Workflow", meta = (ConfigRestartRequired = false, DisplayName = "Command line flags for Cook"))
+	FString LocalWorkflowCookCommandLineFlags;
+
+	/** Additional command line flags passed in to the Dedicated Server in Local Workflow (eg "-log -NoVerifyGC"). */
+	UPROPERTY(EditAnywhere, config, Category = "Local Workflow", meta = (ConfigRestartRequired = false, DisplayName = "Command line flags for Dedicated Server"))
+	FString LocalWorkflowServerCommandLineFlags;
+
+	/** Additional command line flags passed in to the Networked Client in Local Workflow -eg "-log -windowed -ResX=960 -ResY=540"). */
 	UPROPERTY(EditAnywhere, config, Category = "Local Workflow", meta = (ConfigRestartRequired = false, DisplayName = "Command line flags for Networked Client"))
-	FString LocalWorflowClientCommandLineFlags;
+	FString LocalWorkflowClientCommandLineFlags;
 
 	/** IP Address of the Dedicated Server in Local Workflow. Only needed to connect from a remote computer. By default 127.0.0.1 */
 	UPROPERTY(EditAnywhere, config, Category = "Local Workflow", meta = (ConfigRestartRequired = false, DisplayName = "IP Address Dedicated Server"))
-	FString LocalWorflowServerIpAddr;
+	FString LocalWorkflowServerIpAddr;
 
-	/** Use UE4Editor for local workflow instead of the real Dedicated Server & Networked Client executable. Useful for programmers to iterate quicker. */
-	UPROPERTY(EditAnywhere, config, Category = "Local Workflow", meta = (ConfigRestartRequired = false, DisplayName = "Local Workflow use UE4Editor"))
-	bool bLocalWorkflowUseUE4Editor;
+	UPROPERTY(EditAnywhere, config, Category = "Local Workflow", meta = (ConfigRestartRequired = false, DisplayName = "Build Configuration of the Client"))
+	ELocalWorkflowConfig LocalWorkflowClientConfiguration = ELocalWorkflowConfig::Development;
+
+	UPROPERTY(EditAnywhere, config, Category = "Local Workflow", meta = (ConfigRestartRequired = false, DisplayName = "Build Configuration of the Server"))
+	ELocalWorkflowConfig LocalWorkflowServerConfiguration = ELocalWorkflowConfig::Development;
 
 	// CORVUS_END
 
