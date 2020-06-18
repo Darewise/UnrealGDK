@@ -1177,7 +1177,7 @@ FText FSpatialGDKEditorToolbarModule::LaunchDedicatedServerTooltip() const
 void FSpatialGDKEditorToolbarModule::LaunchNetworkedClient()
 {
 	static const FString SavedPath = FPaths::ConvertRelativePathToFull(FPaths::ProjectSavedDir());
-	static const FString ClientPath = FPaths::Combine(SavedPath, TEXT("Saved/StagedBuilds/WindowsNoEditor/Corvus.exe"));
+	static const FString ClientPath = FPaths::Combine(SavedPath, TEXT("StagedBuilds/WindowsNoEditor/Corvus.exe"));
 	// Dynamic settings
 	const USpatialGDKEditorSettings* Settings = GetDefault<USpatialGDKEditorSettings>();
 	const FString ServerIpAddr = Settings->LocalWorkflowServerIpAddr.IsEmpty() ? TEXT("127.0.0.1") : Settings->LocalWorkflowServerIpAddr;
