@@ -461,7 +461,7 @@ void USpatialWorkerConnection::SendMetrics(const SpatialMetrics& Metrics)
 
 FString USpatialWorkerConnection::GetWorkerId() const
 {
-	return FString(UTF8_TO_TCHAR(Worker_Connection_GetWorkerId(WorkerConnection)));
+	return WorkerConnection ? FString(UTF8_TO_TCHAR(Worker_Connection_GetWorkerId(WorkerConnection))) : FString();
 }
 
 const TArray<FString>& USpatialWorkerConnection::GetWorkerAttributes() const

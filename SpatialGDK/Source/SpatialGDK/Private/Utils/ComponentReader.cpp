@@ -53,7 +53,7 @@ void ComponentReader::ApplyComponentData(const Worker_ComponentData& ComponentDa
 
 void ComponentReader::ApplyComponentUpdate(const Worker_ComponentUpdate& ComponentUpdate, UObject* Object, USpatialActorChannel* Channel, bool bIsHandover)
 {
-	if (Object->IsPendingKill())
+	if (Object->IsPendingKill() || Channel->Actor == nullptr) // CORVUS Also check for Channel's Actor validity
 	{
 		return;
 	}

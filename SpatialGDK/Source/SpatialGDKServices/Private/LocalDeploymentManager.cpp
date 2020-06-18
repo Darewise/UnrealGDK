@@ -150,7 +150,8 @@ void FLocalDeploymentManager::RefreshServiceStatus()
 		AsyncTask(ENamedThreads::GameThread, [this]
 		{
 			// It's possible that GEditor won't exist when shutting down.
-			if (GEditor != nullptr)
+			// CORVUS or that the Timer Manager is not valid during early startup.
+			if (GEditor && GEditor->IsTimerManagerValid())
 			{
 				// Start checking for the service status.
 				FTimerHandle RefreshTimer;

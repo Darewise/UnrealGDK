@@ -159,7 +159,7 @@ bool USpatialGameInstance::ProcessConsoleExec(const TCHAR* Cmd, FOutputDevice& A
 void USpatialGameInstance::HandleOnConnected()
 {
 	UE_LOG(LogSpatialGameInstance, Log, TEXT("Succesfully connected to SpatialOS"));
-	SpatialWorkerId = SpatialConnection->GetWorkerId();
+	SpatialWorkerId = SpatialConnection->IsValidLowLevel() ? SpatialConnection->GetWorkerId() : FString(); // CORVUS: workaround a crash
 	OnConnected.Broadcast();
 }
 
