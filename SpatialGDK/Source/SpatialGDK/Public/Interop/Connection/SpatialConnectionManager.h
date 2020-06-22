@@ -39,7 +39,7 @@ public:
 
 	void Connect(bool bConnectAsClient, uint32 PlayInEditorID);
 
-	FORCEINLINE bool IsConnected() { return bIsConnected; }
+	FORCEINLINE bool IsConnected() const { return bIsConnected; } // CORVUS const
 
 	void SetConnectionType(ESpatialConnectionType InConnectionType);
 
@@ -57,6 +57,7 @@ public:
 	bool TrySetupConnectionConfigFromCommandLine(const FString& SpatialWorkerType);
 	void SetupConnectionConfigFromURL(const FURL& URL, const FString& SpatialWorkerType);
 
+	const USpatialWorkerConnection* GetWorkerConnection() const { return WorkerConnection; } // CORVUS const
 	USpatialWorkerConnection* GetWorkerConnection() { return WorkerConnection; }
 
 	void RequestDeploymentLoginTokens();

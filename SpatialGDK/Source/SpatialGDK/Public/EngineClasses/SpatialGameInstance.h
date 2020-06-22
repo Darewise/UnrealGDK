@@ -46,6 +46,7 @@ public:
 	// Destroying the SpatialConnectionManager disconnects us from SpatialOS.
 	void DestroySpatialConnectionManager();
 
+	FORCEINLINE const USpatialConnectionManager* GetSpatialConnectionManager() const { return SpatialConnectionManager; } // CORVUS const
 	FORCEINLINE USpatialConnectionManager* GetSpatialConnectionManager() { return SpatialConnectionManager; }
 	FORCEINLINE USpatialLatencyTracer* GetSpatialLatencyTracer() { return SpatialLatencyTracer; }
 	FORCEINLINE UGlobalStateManager* GetGlobalStateManager() { return GlobalStateManager; };
