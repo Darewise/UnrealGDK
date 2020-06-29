@@ -1075,12 +1075,17 @@ void FSpatialGDKEditorToolbarModule::CookMap()
 
 	const USpatialGDKEditorSettings* Settings = GetDefault<USpatialGDKEditorSettings>();
 
+	// Compare current & default maps from settings to control the sanity of it
+	const FString CurrentLevelName = UGameplayStatics::GetCurrentLevelName(GEditor->GetEditorWorldContext().World());
+	const FString ServerDefaultMap = UnrealUtils::GetServerDefaultMap();
+	if (!ServerDefaultMap.EndsWith(CurrentLevelName))
+		UE_LOG(LogSpatialGDKEditorToolbar, Warning, TEXT("ServerDefaultMap (%s) should match current level (%s) to improve cooking time"), *ServerDefaultMap, *CurrentLevelName);
+
 	// Add additional options free-form options, as well as "-build" to automatically compile the game & server executables (but not the Editor itself) for developers :)
 	TCHAR* buildOption = Settings->bLocalWorkflowCookBuild ? TEXT(" -build -nocompileeditor") : TEXT("");
 	const FString CookOptions = Settings->LocalWorkflowCookCommandLineFlags + buildOption;
 
 	const FString AutomationTool = FPaths::Combine(FPaths::RootDir(), TEXT("Engine/Binaries/DotNET/AutomationTool.exe"));
-	const FString CurrentLevelName = UGameplayStatics::GetCurrentLevelName(GEditor->GetEditorWorldContext().World());
 	const FString ProjectFilePath = FPaths::ConvertRelativePathToFull(FPaths::GetProjectFilePath());
 
 	const FString CommandLineArgs = FString::Printf(TEXT("BuildCookRun -project=\"%s\" -unattended -noP4 -Map=%s -clientconfig=%s -platform=Win64 -server -serverconfig=%s -serverplatform=Win64 -cook -SkipCookingEditorContent -unversioned -stage %s"),
@@ -1094,11 +1099,14 @@ void FSpatialGDKEditorToolbarModule::CookMap()
 
 bool FSpatialGDKEditorToolbarModule::CanCookMap() const
 {
+	const FString GameDefaultMap = UnrealUtils::GetGameDefaultMap();
+
 	// Can launch cooking only if not already running
 	// Can launch cooking only if SpatialOS not already running (because Cook Map is somehow killing any running SpatialOS)
 	// Can launch cooking only if dedicated server not already running
+	// Can launch cooking only with the default GameDefaultMap to cov_MainMenu
 	// TODO: we should check for network client(s) (at least the first one)
-	return !CookMapProcess.IsValid() && !LocalDeploymentManager->IsLocalDeploymentRunning() && !ServerProcessHandle.IsValid();
+	return !CookMapProcess.IsValid() && !LocalDeploymentManager->IsLocalDeploymentRunning() && !ServerProcessHandle.IsValid() && GameDefaultMap.EndsWith(TEXT("cov_MainMenu"));
 }
 
 FText FSpatialGDKEditorToolbarModule::CookMapLabel() const
@@ -1109,10 +1117,14 @@ FText FSpatialGDKEditorToolbarModule::CookMapLabel() const
 
 FText FSpatialGDKEditorToolbarModule::CookMapTooltip() const
 {
+	const FString GameDefaultMap = UnrealUtils::GetGameDefaultMap();
+
 	if (CookMapProcess.IsValid())
 		return LOCTEXT("CookMapRunning_Tooltip", "Cooking map in progress.");
 	else if (ServerProcessHandle.IsValid())
 		return LOCTEXT("CookMapWorkerRunning_Tooltip", "Cannot cook map with server or client running.");
+	else if (!GameDefaultMap.EndsWith(TEXT("cov_MainMenu")))
+		return LOCTEXT("CookMapWorkerRunning_Tooltip", "GameDefaultMap shall not be changed from default 'cov_MainMenu': Return To Main Menu would crash.");
 	else
 		return LOCTEXT("CookMap_Tooltip", "Cook all data related to the current map.\nRequired to launch a dedicated server or networked client.");
 }
