@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [`x.y.z`] - Unreleased
 
+### Features:
+
+### Bug fixes:
+- Fixed a crash that occured when overflowed RPCs remained overflowed after trying to flush them.
+
 ## [`0.10.0`] - 2020-07-08
 
 ### New Known Issues:
