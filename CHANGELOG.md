@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Bug fixes:
 - Fixed a crash that occured when overflowed RPCs remained overflowed after trying to flush them.
+- [UNR-3935] Remove cast to FSpatialNetBitReader in favor of a static methods. #2404
 
 ## [`0.10.0`] - 2020-07-08
 
