@@ -45,6 +45,19 @@ void SpatialVirtualWorkerTranslationManager::AuthorityChanged(const Worker_Autho
 
 	UE_LOG(LogSpatialVirtualWorkerTranslationManager, Log, TEXT("This worker now has authority over the VirtualWorker translation."));
 
+	// CORVUS_BEGIN COV-14718 Server fails to restart with looping message "Waiting for the Load balancing system to be ready."
+	// WORKER RESTARTING PATCH https://support.improbable.io/support/tickets/2504
+	VirtualWorkerId DequeuedId;
+	UnassignedVirtualWorkers.Dequeue(DequeuedId);
+	const bool bExpectsSingleServer = UnassignedVirtualWorkers.IsEmpty();
+	UnassignedVirtualWorkers.Enqueue(DequeuedId);    if (bExpectsSingleServer)
+	{
+		AssignWorker(Translator->GetLocalPhysicalWorkerName(), SpatialConstants::INVALID_ENTITY_ID);
+		SendVirtualWorkerMappingUpdate();
+		return;
+	}
+	// CORVUS_END
+
 	// TODO(zoning): The prototype had an unassigned workers list. Need to follow up with Tim/Chris about whether
 	// that is necessary or we can continue to use the (possibly) stale list until we receive the query response.
 
