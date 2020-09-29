@@ -1896,7 +1896,14 @@ bool USpatialNetDriver::CreateSpatialNetConnection(const FURL& InUrl, const FUni
 
 	// Get the worker attribute.
 	const TCHAR* WorkerAttributeOption = InUrl.GetOption(TEXT("workerAttribute"), nullptr);
-	check(WorkerAttributeOption);
+	// CORVUS_BEGIN
+	// https://support.improbable.io/support/tickets/710 [GDK 0.10.0] Assertion failed: WorkerAttributeOption [SpatialNetDriver.cpp:1881] server crash
+	if (!WorkerAttributeOption)
+	{
+		UE_LOG(LogSpatialOSNetDriver, Warning, TEXT("CreateSpatialNetConnection(%s): WorkerAttributeOption nullptr (outdated client)"), *InUrl.ToString());
+		return false;
+	}
+	// CORVUS_END
 	SpatialConnection->ConnectionOwningWorkerId = FString(WorkerAttributeOption).Mid(1); // Trim off the = at the beginning.
 
 	// Register workerId and its connection.
@@ -1987,6 +1994,8 @@ void USpatialNetDriver::ProcessPendingDormancy()
 void USpatialNetDriver::AcceptNewPlayer(const FURL& InUrl, const FUniqueNetIdRepl& UniqueId, const FName& OnlinePlatformName)
 {
 	USpatialNetConnection* SpatialConnection = nullptr;
+
+	UE_LOG(LogSpatialOSNetDriver, Log, TEXT("AcceptNewPlayer(%s)"), *InUrl.ToString());
 
 	if (!CreateSpatialNetConnection(InUrl, UniqueId, OnlinePlatformName, &SpatialConnection))
 	{
